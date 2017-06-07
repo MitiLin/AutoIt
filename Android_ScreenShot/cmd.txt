@@ -1,0 +1,1 @@
+adb  exec-out screencap -p > .\Android_ScreenShot.png
