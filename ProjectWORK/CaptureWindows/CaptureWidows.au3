@@ -16,7 +16,7 @@ MoveBrowser("[CLASS:Chrome_WidgetWin_1;TITLE:Webinars - Google Chrome]")
 MoveBrowser("[CLASS:IEFrame;TITLE:Webinars - Internet Explorer]")
 MoveBrowser("[CLASS:MozillaWindowClass;TITLE:Webinars - Mozilla Firefox]")
 MoveBrowser("[CLASS:ApplicationFrameWindow;TITLE:Webinars ‎- Microsoft Edge]")
-MoveBrowser("[CLASS:Koan;TITLE:U Webinars]")
+MoveBrowser("[CLASS:Koan;TITLE:U Webinar]")
 
 $DisplayTimer = TimerInit()
 $SnapshotTimer = TimerInit()
