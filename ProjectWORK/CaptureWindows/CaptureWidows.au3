@@ -22,7 +22,8 @@ $DisplayTimer = TimerInit()
 $SnapshotTimer = TimerInit()
 RunWait(@ComSpec & " /c " & "adb kill-server", "",@SW_HIDE )
 RunWait(@ComSpec & " /c " & "adb devices", "",@SW_HIDE )
-
+DirCreate("D:\dropbox\android")
+DirCreate("D:\dropbox\screenshots")
 
 CaptureScreen()
 While True
