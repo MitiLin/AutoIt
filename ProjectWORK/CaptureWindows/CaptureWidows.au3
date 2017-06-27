@@ -1,4 +1,4 @@
-
+#RequireAdmin
 #include <ScreenCapture.au3>
 #include <array.au3>
 
@@ -13,7 +13,7 @@ Global $ScreenY_offset = 0
 Global $Timer = TimerInit()
 
 MoveBrowser("[CLASS:Chrome_WidgetWin_1;TITLE:Webinar - Google Chrome]")
-MoveBrowser("[CLASS:IEFrame;TITLE:Webinar - Internet Explorer]")
+MoveBrowser("[CLASS:CHWindow]")
 MoveBrowser("[CLASS:MozillaWindowClass;TITLE:Webinar - Mozilla Firefox]")
 MoveBrowser("[CLASS:ApplicationFrameWindow;TITLE:Webinar ‎- Microsoft Edge]")
 MoveBrowser("[CLASS:Koan;TITLE:U Webinar]")
