@@ -12,6 +12,8 @@ Global $ScreenX_offset = -1920
 Global $ScreenY_offset = 0
 Global $Timer = TimerInit()
 
+MsgBox("","Start", "Click ok to Start")
+
 MoveBrowser("[CLASS:Chrome_WidgetWin_1;TITLE:Webinar - Google Chrome]")
 MoveBrowser("[CLASS:CHWindow]")
 MoveBrowser("[CLASS:MozillaWindowClass;TITLE:Webinar - Mozilla Firefox]")
