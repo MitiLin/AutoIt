@@ -14,9 +14,9 @@ Global $Timer = TimerInit()
 
 MsgBox("","Start", "Click ok to Start")
 
-MoveBrowser("[CLASS:Chrome_WidgetWin_1;TITLE:Webinar - Google Chrome]")
+MoveBrowser("[CLASS:Chrome_WidgetWin_1;TITLE:U - Google Chrome]")
 MoveBrowser("[CLASS:CHWindow]")
-MoveBrowser("[CLASS:MozillaWindowClass;TITLE:Webinar - Mozilla Firefox]")
+MoveBrowser("[CLASS:MozillaWindowClass;TITLE:U - Mozilla Firefox]")
 MoveBrowser("[CLASS:ApplicationFrameWindow;TITLE:Webinar ‎- Microsoft Edge]")
 MoveBrowser("[CLASS:Koan;TITLE:U Webinar]")
 
