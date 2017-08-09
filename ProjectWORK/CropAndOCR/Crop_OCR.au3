@@ -12,15 +12,16 @@
 #include <GDIPlus.au3>
 #include <MsgBoxConstants.au3>
 
-;local $IE_Edge[] =  [843,225,1078,290,196,786,432,850]	; 4:3
-local $IE_Edge[] = [749,215,1169,294,104,786,523,854]		; 16:9
+OnAutoItExitRegister("myExit")
+Func myExit()
+    MsgBox(0, "Finish", 'Finish!')
+EndFunc   ;==>MyTestFunc
 
 ; for 4:3 IE/Edge
 local $BrowserData[][] = [ _
-	["Chrome",105,257,521,326], _
-	["FireFox",1382,255,1799,325], _
-	["IE",$IE_Edge[0],$IE_Edge[1],$IE_Edge[2],$IE_Edge[3]], _
-	["Edge",$IE_Edge[4],$IE_Edge[5],$IE_Edge[6],$IE_Edge[7]], _
+	["Chrome",44,268,578,353], _
+	["FireFox",1326,289,1862,371], _	;20170809
+	["iOS",820,151,1099,195], _
 	["U",643,772,953,823], _
 	["Original",1949,401,3830,710], _
 	["Android",9,440,1068,612] _		; Android screen is cropped independently
@@ -31,7 +32,7 @@ Global $fileList = _FileListToArrayRec(".\","??-??-??-??-??.PNG", $FLTAR_FILES ,
 
 DirCreate("pic")
 _GDIPlus_Startup()
-Global $hImage, $hNewImage[7], $hCtxt[7], $sErrorList = ""
+Global $hImage, $hNewImage[6], $hCtxt[6], $sErrorList = ""
 
 
 for $j = 0 to UBound($BrowserData) -1
@@ -51,11 +52,11 @@ for $i = 1 to $fileList[0]
 
 	If StringLeft($fileList[$i],7) = "Android" Then
 		$fileList[$i] = StringTrimLeft($fileList[$i],8)
-		$BrowserStart = 6
-		$BrowserEnd = 6
+		$BrowserStart = 5
+		$BrowserEnd = 5
 	Else
 		$BrowserStart = 0
-		$BrowserEnd = 5
+		$BrowserEnd = 4
 	EndIf
 
 	for $j = $BrowserStart to $BrowserEnd
