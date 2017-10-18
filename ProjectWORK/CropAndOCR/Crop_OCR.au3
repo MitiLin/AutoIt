@@ -21,7 +21,7 @@ EndFunc   ;==>MyTestFunc
 local $BrowserData[][] = [ _
 	["Chrome",44,268,578,353], _
 	["FireFox",1326,289,1862,371], _	;20170809
-	["iOS",820,151,1099,195], _
+	["iOS",883,145,1134,185], _
 	["U",643,772,953,823], _
 	["Original",1949,401,3830,710], _
 	["Android",9,440,1068,612] _		; Android screen is cropped independently
