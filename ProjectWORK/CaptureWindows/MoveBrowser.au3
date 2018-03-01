@@ -9,13 +9,17 @@
 #ce ----------------------------------------------------------------------------
 ;#RequireAdmin
 ; Script Start - Add your code below here
+#RequireAdmin
 #include-once
 Global $windows_W = 3
 Global $windows_H = 2
 Global $ScreenX_offset = 0
 Global $ScreenY_offset = 0
+Opt("WinTitleMatchMode", 2)
+MoveBrowser("[CLASS:Qt5QWindowIcon;Title:LonelyScreen AirPlay Receiver]") ;]
+;ConsoleWrite("------------------------"&@CRLF)
+;ConsoleWrite(WinGetHandle("[CLASS:Qt5QWindowIcon]")&@CRLF)
 
-MoveBrowser("[CLASS:UBeta]")
 
 Func MoveBrowser($win)
 	Static $Display_w = 0
