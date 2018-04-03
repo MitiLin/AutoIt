@@ -16,7 +16,7 @@
 
 DirCreate ( @AppDataDir & "\AutoIt" )
 FileInstall ( ".\PsExec.exe", @AppDataDir & "\AutoIt\PsExec.exe" )
-FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt\Reveiver.exe" )
+FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt\Receiver.exe" )
 $exeFile = @AppDataDir & "\AutoIt\Receiver.exe"
 $iniList = IniReadSection("list.ini", "Server")
 $iniAccount =  IniReadSection("list.ini", "Account")
@@ -122,7 +122,7 @@ While 1
 					GUICtrlSetData($client[$i][4], "Connecting to client")
 ;~ 				    Local $t_ExitCode = DllStructCreate("int")
 ;~ 					Local $avRET = DllCall("kernel32.dll", "int", "GetExitCodeProcess", "ptr", $cmdPid, "ptr", DllStructGetPtr($t_ExitCode))
-					ConsoleWrite(@AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u miti -p 123123 -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80"  &@CRLF)
+					ConsoleWrite(@AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u "&$iniAccount[1][0]&" -p "&$iniAccount[1][1]&" -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80"  &@CRLF)
 				EndIf
 			Next
 			GUICtrlSetState($btn_Execute,64)
@@ -162,7 +162,7 @@ Func _GetPublicIP()
 		http://www.telize.com/ip
 		http://www.trackip.net/ip
 	#ce
-	Local $aGetIPURL[] = ["http://http://www.whatismyip.com.tw/"], _
+	Local $aGetIPURL[] = ["http://www.whatismyip.com.tw/"], _
 			$aReturn = 0, _
 			$sReturn = ""
 

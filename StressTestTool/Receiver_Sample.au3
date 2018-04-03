@@ -6,8 +6,8 @@ TCPStartup() ; Start the TCP service.
 ; Register OnAutoItExit to be called when the script is closed.
 OnAutoItExitRegister("OnAutoItExit")
 
-$sIPAddress = "111.248.195.80"
-$iPort = 80
+$sIPAddress = $CmdLine[1]
+$iPort = $cmdline[2]
 
 for  $i = 1 to 1
 $publicIP = _GetIP()
