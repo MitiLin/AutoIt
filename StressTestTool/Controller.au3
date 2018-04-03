@@ -15,8 +15,8 @@
 
 
 DirCreate ( @AppDataDir & "\AutoIt" )
-FileInstall ( ".\PsExec.exe", @AppDataDir & "\AutoIt" )
-FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt" )
+FileInstall ( ".\PsExec.exe", @AppDataDir & "\AutoIt\PsExec.exe" )
+FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt\Reveiver.exe" )
 $exeFile = @AppDataDir & "\AutoIt\Receiver.exe"
 $iniList = IniReadSection("list.ini", "Server")
 $iniAccount =  IniReadSection("list.ini", "Account")
