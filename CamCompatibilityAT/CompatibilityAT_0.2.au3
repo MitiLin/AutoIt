@@ -1,0 +1,382 @@
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Icon=favicon.ico
+#AutoIt3Wrapper_Res_Comment=U Webcam Compatibility AT
+#AutoIt3Wrapper_Res_Fileversion=0.1
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+#cs ----------------------------------------------------------------------------
+
+ AutoIt Version: 3.3.12.0
+ Author:         myName
+
+ Script Function:
+	Template AutoIt script.
+
+#ce ----------------------------------------------------------------------------
+
+; Script Start - Add your code below here
+
+#include <APIDiagConstants.au3>
+#include <WinAPIDiag.au3>
+#include <InetConstants.au3>
+#include <MsgBoxConstants.au3>
+#include <zip.au3>
+#include <ScreenCapture.au3>
+#include <file.au3>
+#include <FTPEx.au3>
+
+
+Global $dbgView
+$logPath = @LocalAppDataDir & "\AutoIt"
+$meetingID = 120404031
+$UID = StringTrimRight(StringTrimLeft(_WinAPI_UniqueHardwareID(),1),1)
+
+OnAutoItExitRegister("AutoItexit")
+HotKeySet("{ESC}", "Terminate")
+
+createTempFolder()
+launchDBG()
+getDxlog()
+
+If not isUInstalled() Then
+	downloadInstaller()
+Else
+	launchU()
+EndIf
+waitU()
+joinMeeting()
+
+finishProcess()
+
+packageData()
+UploadData()
+MsgBox (0,"Compatibility","Files upload finished. Thanks for help!")
+
+
+
+
+Func createTempFolder($logPath = @LocalAppDataDir & "\AutoIt")
+	myLog("Create tmpFolder")
+	If not FileExists($logPath) Then DirCreate($logPath)
+	FileInstall(".\Dbgview.exe" , $logPath & "\Dbgview.exe",0)
+EndFunc
+
+Func getDxlog()
+	myLog("Get DxLog")
+ 	Run(@ComSpec & " /c " & 'dxdiag /dontskip /t dxdiag_output.txt', $logPath, @SW_HIDE)
+EndFunc
+
+Func launchDBG()
+	myLog("launch DBG")
+	RegWrite("HKEY_CURRENT_USER\Software\Sysinternals\DbgView", "EulaAccepted", "REG_DWORD", 1)
+	run(@ComSpec & " /c " & $logPath & '\dbgview /t /l ' & $logPath &"\U_Dbgview_" & $UID & ".log /p" , "", @SW_HIDE)
+	$dbgView = ProcessWait ( "Dbgview.exe" , 5)
+	sleep(1000)
+	DllCall("kernel32.dll", "none", "OutputDebugString", "str", "AutoIt - " &@MON&@MDAY&"-"&@HOUR&@MIN&@SEC)
+	myLog("debug view = " & $dbgView)
+EndFunc
+
+
+
+Func isUInstalled()
+	If FileExists(@AppDataCommonDir & "\Cyberlink\U") Then
+		MyLog("U folder exists")
+		If FileExists(@AppDataCommonDir & "\Cyberlink\U\U.exe") Then
+			Return True
+		Else
+			Mylog("U.exe does not exist")
+		EndIf
+	EndIf
+	Mylog("Install U")
+	return False
+EndFunc
+
+Func downloadInstaller()
+	myLog("Download installer")
+	InetGet("http://update.cyberlink.com/Retail/Patch/U/DL/KNG9DIC9I9/UAppInst.exe",@TempDir & "\UAppinst.exe", $INET_FORCERELOAD)
+	Run(@ComSpec & " /c " & @TempDir & "\UAppinst.exe", @TempDir, @SW_HIDE)
+	ConsoleWrite("waiting for downloader ready" &@CRLF)
+	myLog("waiting for downloader ready")
+	$hDownloader = WinWait("[CLASS:CLDownloader]")
+	ConsoleWrite("waiting for installing")
+	myLog("waiting for installing")
+	$hDownloader = WinWaitClose("[CLASS:CLDownloader]")
+	ConsoleWrite("installation is finished."&@CRLF)
+	myLog("installation is finished.")
+EndFunc
+
+Func launchU()
+	myLog("Launch U")
+	Run(@AppDataCommonDir & "\Cyberlink\U\U.exe","",@SW_HIDE)
+EndFunc
+
+Func waitU()
+	ConsoleWrite("Wait U" &@CRLF)
+	myLog("Wait U")
+	$_exitColor = -1
+	$_timerExit = TimerInit()
+	$hU = WinWaitActive("[TITLE:U;CLASS:U]","",10)
+	ConsoleWrite("U is activated" &@CRLF)
+	myLog("U is activated")
+	While $_exitColor <> 0xB2B2B2
+		;ConsoleWrite("Exit = " & $hMeetingExit &@CRLF)
+		$hU = WinWaitActive("[TITLE:U;CLASS:U]","",0)
+		WinActivate($hU)
+		$posU = WinGetPos($hU)
+		$_exitColor = PixelGetColor($posU[0] + Floor($posU[2]/2), $posU[1]+ 20)
+		ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
+		sleep(500)
+		If TimerDiff($_timerExit) > 60 * 1000 Then
+			myLog("[Warning] U window does not exist over 1min!")
+			Exit 1
+		EndIf
+
+	WEnd
+
+EndFunc
+
+
+
+Func joinMeeting()
+	;in U window
+	myLog("Join Meeting")
+	$hU = WinActivate("[TITLE:U;CLASS:U]")
+	If isSignIn() Then
+		;sign in already
+		ConsoleWrite("sign in already" &@CRLF)
+		_joinMeetingSignin()
+	Else
+		;not sign in
+		$posU = WinGetPos($hU)
+		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 480 ,5)
+		MouseClick("Left")
+		sleep(1000)
+		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 180 ,5)
+		MouseClick("Left")
+		sleep(500)
+		Send($meetingID)
+		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 225 ,5)
+		MouseClick("Left")
+		send("^a" & @ComputerName)
+		MouseMove($posU[0] + Floor($posU[2]/2) +50  , $posU[1] + 300 ,5)
+		MouseClick("Left")
+
+	EndIf
+	$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "" , 10)
+
+	; in Meeting window
+	_selectDevice()
+	myLog("Wait for Meeting windows is activate")
+	WinWaitActive($hMeeting,"",10)
+	ConsoleWrite($hMeeting &@CRLF)
+	myLog("Meeting = " & $hMeeting)
+	$posMeeting = WinGetPos($hMeeting)
+	$_color = 0
+	While Not $_color = 0x575757
+		$_color = hex(PixelGetColor($posMeeting[0] + 15 , $posMeeting[1] + 10))
+		sleep(200)
+	WEnd
+	Sleep(4000)
+	Send("{SPACE}")
+	Sleep(1000)
+	;Meeting - recording
+	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	myLog("Count down 10 sec")
+	_countDown(10)
+	_ScreenCapture_CaptureWnd($logPath & "\ScreenShot_" & $UID & ".jpg" , $hMeeting)
+	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+
+	;Meeting - leaving
+	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+
+	$_exitColor = -1
+	$_timerExit = TimerInit()
+	$_foundExitWindow = True
+	While $_exitColor <> 0xB6414A
+		$hMeetingExit = WinGetHandle("[CLASS:Koan]")
+		;ConsoleWrite("Exit = " & $hMeetingExit &@CRLF)
+		$posMeetingExit = WinGetPos($hMeetingExit)
+		$_exitColor = PixelGetColor($posMeetingExit[0]+ 136, $posMeetingExit[1]+ 118)
+		;ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
+		sleep(500)
+		If TimerDiff($_timerExit) > 5 * 1000 Then
+			myLog("[Warning] Exit window does not exist over 5sec! switch to location mathod")
+			$_foundExitWindow = False
+			ExitLoop
+		EndIf
+	WEnd
+
+	If $_foundExitWindow Then
+		MouseClick("Left" , $posMeetingExit[0]+ 136, $posMeetingExit[1]+ 113, 1 , 5)
+	Else
+		WinActivate($hMeeting)
+		MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -80 ,1,10)
+	EndIf
+
+	;close encode window
+	ConsoleWrite("exit encode" &@CRLF)
+	myLog("exit encode")
+
+	$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 5)
+	ConsoleWrite("$hMeetingEnc = " &$hMeetingEnc &@CRLF)
+	myLog("hMeetingEnc = " &$hMeetingEnc)
+	If not $hMeetingEnc Then
+		myLog("Encode windows does not exist over 10sec")
+		Exit 1
+	EndIf
+
+	$posMeetingEnc = WinGetPos($hMeetingEnc)
+	$_exitColor = 0
+	$_timerEnc = TimerInit()
+	ConsoleWrite("Waiting for enccode window" &@CRLF)
+	myLog("Waiting for enccode window")
+	While $_exitColor <> 0x43A5F0
+		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 0)
+		WinSetOnTop("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]","",1)
+		$posMeetingEnc = WinGetPos($hMeetingEnc)
+		If IsArray($posMeetingEnc) Then $_exitColor = PixelGetColor($posMeetingEnc[0]+ 285, $posMeetingEnc[1]+ 150)
+		sleep(500)
+		If Mod(TimerDiff($_timerEnc),5) = 1 Then $posMeetingEnc = WinGetPos($hMeetingEnc)
+		If TimerDiff($_timerEnc) > 300 * 1000 Then
+			myLog("[Error] Encode over 5min!")
+			Exit 1
+		EndIf
+	WEnd
+	MouseClick("Left",$posMeetingEnc[0]+ 285, $posMeetingEnc[1]+ 150,1,5)
+
+
+EndFunc
+
+Func _joinMeetingSignin()
+	$_hU = WinActivate("[TITLE:U;CLASS:U]")
+	$_posU = WinGetPos($_hU)
+	MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) -135 , $_posU[1] + 85 , 1, 10)
+	MouseClick("Left", $_posU[0] + 40 , $_posU[1] + 280 ,1, 20)
+	$_idDialog= WinWait("[CLASS:KOAN MSO DLG;W:400\H:360]","",3)
+	Sleep(1000)
+	ConsoleWrite("$_idDialog=" & $_idDialog &@CRLF)
+	myLog("$_idDialog=" & $_idDialog)
+	$_posidDialog = WinGetPos($_idDialog)
+	If IsArray($_posidDialog) Then
+		ConsoleWrite($_posidDialog[0] + Floor($_posidDialog[2]/2) &":"& $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10 &@CRLF )
+		MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 0 , 30 )
+		Send($meetingID)
+		MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2) + 50, $_posidDialog[1] + Floor($_posidDialog[3]/2) + 130 , 20)
+	EndIf
+
+EndFunc
+
+
+Func _selectDevice()
+	$_cam = IniRead(@LocalAppDataDir & "\Cyberlink\U\settings.ini","meetings" , "defaultvideo" , "")
+	ConsoleWrite("cam = " &$_cam &@CRLF)
+	myLog("cam = " &$_cam)
+	If $_cam <> ""  Then
+		myLog("skip device selection")
+		Return
+	EndIf
+
+	Do
+		$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "",20)
+		WinActivate($hMeeting)
+		Sleep(200)
+		$posMeeting = WinGetPos($hMeeting)
+
+	Until PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10) = 0x575757
+	$_timerSearch = TimerInit()
+	Do
+		$posButton = PixelSearch( _
+			Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200 , _
+			Floor($posMeeting[0]+ $posMeeting[2] /2) + 2 ,Floor($posMeeting[1]+ $posMeeting[3] /2) +200 , 0x43A5F0 _
+			)
+	Until IsArray($posButton) or TimerDiff($_timerSearch) > 10 *1000
+
+	ConsoleWrite("Found button? " & IsArray($posButton) &@CRLF)
+	if IsArray($posButton) Then
+		ConsoleWrite("click it")
+		MouseClick("Left" , $posButton[0], $posButton[1])
+	Else
+		ConsoleWrite("No click")
+		MouseMove(Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200)
+		MouseMove(Floor($posMeeting[0]+ $posMeeting[2] /2) + 2 ,Floor($posMeeting[1]+ $posMeeting[3] /2) +200, 100)
+	EndIf
+EndFunc
+
+Func isSignIn()
+	return FileExists(@LocalAppDataDir & "\Cyberlink\U\userinfo.cache")? True : False
+EndFunc
+Func _countDown($__duration = 10)
+	$__last = -1
+	$__timer = TimerInit()
+	While TimerDiff($__timer) < $__duration *1000
+		$__new = Floor(TimerDiff($__timer)/1000)
+		If $__new <> $__last Then ToolTip($__duration - $__new,0,0)
+		Sleep(100)
+	WEnd
+	ToolTip("")
+EndFunc
+
+Func myLog($_data1 = '[empty]', $_data2 = '', $_data3 = '', $_data4 = '', $_data5  = '')
+	ToolTip($_data1,0,0)
+	FileWriteLine($logPath & "\UCompatibility_" & $UID & ".log", _
+	@YEAR &"-"& @MON &"-"& @MDAY  &"/"& @HOUR &":"& @MIN &":"& @SEC & @TAB & $_data1 & _
+	(($_data2="")?"": ", " & $_data2) & _
+	(($_data3="")?"": ", " & $_data3) & _
+	(($_data4="")?"": ", " & $_data4) & _
+	(($_data5="")?"": ", " & $_data5) _
+	)
+EndFunc
+;& $_data2 = ''?"":$_data2 & $_data3 = ''?"":$_data3 & $_data4 = ''?"":$_data4 & $_data5 = ''?"":$_data5
+
+
+Func finishProcess()
+	ProcessClose($dbgView)
+	MyLog("Script Finish normally.")
+EndFunc
+
+Func packageData()
+	$zipName = $logPath & '\' &$UID& '.zip'
+	$Zip = _Zip_Create($zipName)
+	ConsoleWrite("zip1"&@CRLF)
+	myLog("zip1")
+	_Zip_AddFile($Zip,$logPath &'\dxdiag_output.txt')
+	ConsoleWrite("zip2"&@CRLF)
+	myLog("zip2")
+	_Zip_AddFile($Zip,$logPath &'\UCompatibility_' & $UID & '.log')
+	ConsoleWrite("zip3"&@CRLF)
+	myLog("zip3")
+	_Zip_AddFile($Zip,$logPath &'\ScreenShot_' & $UID & '.jpg')
+	ConsoleWrite("zip4"&@CRLF)
+	myLog("zip4")
+	_Zip_AddFile($Zip,$logPath & "\U_Dbgview_" & $UID & ".log")
+	$videoList = _FileListToArray(@UserProfileDir & "\Videos\U Meeting Recordings")
+	ConsoleWrite("zip5"&@CRLF)
+	myLog("zip5")
+	_Zip_Addfolder($Zip,@UserProfileDir & "\Videos\U Meeting Recordings\" & $videoList[$videoList[0]]& "\", 0)
+	ConsoleWrite("zip6"&@CRLF)
+	myLog("zip6")
+	_Zip_Addfolder($Zip,@LocalAppDataDir & "\CyberLink\U\dmp\", 0)
+EndFunc
+
+
+
+Func UploadData()
+	ConsoleWrite("upload now")
+	myLog("upload now")
+	Local $hOpen = _FTP_Open('MyFTP Control')
+	Local $hConn = _FTP_Connect($hOpen, "mitilin.mooo.com", "AutoScript" , "123123" ,1 )
+	$a = _FTP_FilePut( $hConn, $logPath & '\' &$UID& '.zip', $UID& '.zip' )
+	ConsoleWrite("Result=" & $a &@CRLF & "error= " & @error &@CRLF)
+	myLog("Result=" & $a  & " error= " & @error)
+	Local $iFtpc = _FTP_Close($hConn)
+	Local $iFtpo = _FTP_Close($hOpen)
+EndFunc
+
+
+Func Terminate()
+    Exit
+EndFunc   ;==>Terminate
+Func AutoItExit()
+	ProcessClose($dbgView)
+	myLog("Close DbgView")
+EndFunc
+
