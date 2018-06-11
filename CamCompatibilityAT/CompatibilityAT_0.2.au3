@@ -254,7 +254,7 @@ Func joinMeeting()
 		EndIf
 	WEnd
 	ConsoleWrite("close encode window" &@CRLF)
-	_MouseClick("Left",$_exitColor[0], $_exitColor[1]+ 150,1,5)
+	_MouseClick("Left",$_exitColor[0], $_exitColor[1],1,5)
 
 
 EndFunc
