@@ -1,7 +1,7 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=favicon.ico
 #AutoIt3Wrapper_Res_Comment=U Webcam Compatibility AT
-#AutoIt3Wrapper_Res_Fileversion=0.1
+#AutoIt3Wrapper_Res_Fileversion=0.2.0.0
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #cs ----------------------------------------------------------------------------
 
@@ -23,7 +23,7 @@
 #include <ScreenCapture.au3>
 #include <file.au3>
 #include <FTPEx.au3>
-
+#include <HTTP.au3>
 
 Global $dbgView
 $logPath = @LocalAppDataDir & "\AutoIt"
@@ -32,6 +32,10 @@ $UID = StringTrimRight(StringTrimLeft(_WinAPI_UniqueHardwareID(),1),1)
 
 OnAutoItExitRegister("AutoItexit")
 HotKeySet("{ESC}", "Terminate")
+$displayName = InputBox("Display Name"," " , "","",190,115)
+$ratioDPI = int(RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics","AppliedDPI"))/96
+
+
 
 createTempFolder()
 launchDBG()
@@ -58,17 +62,18 @@ Func createTempFolder($logPath = @LocalAppDataDir & "\AutoIt")
 	myLog("Create tmpFolder")
 	If not FileExists($logPath) Then DirCreate($logPath)
 	FileInstall(".\Dbgview.exe" , $logPath & "\Dbgview.exe",0)
+	myLog("DPI Ratio =" & $ratioDPI)
 EndFunc
 
 Func getDxlog()
 	myLog("Get DxLog")
- 	Run(@ComSpec & " /c " & 'dxdiag /dontskip /t dxdiag_output.txt', $logPath, @SW_HIDE)
+ 	Run(@SystemDir & '\dxdiag /dontskip /t dxdiag_output.txt', $logPath, @SW_HIDE)
 EndFunc
 
 Func launchDBG()
 	myLog("launch DBG")
 	RegWrite("HKEY_CURRENT_USER\Software\Sysinternals\DbgView", "EulaAccepted", "REG_DWORD", 1)
-	run(@ComSpec & " /c " & $logPath & '\dbgview /t /l ' & $logPath &"\U_Dbgview_" & $UID & ".log /p" , "", @SW_HIDE)
+	Run($logPath & '\dbgview /t /l ' & $logPath &"\U_Dbgview_" & $UID & ".log /p" , "", @SW_HIDE)
 	$dbgView = ProcessWait ( "Dbgview.exe" , 5)
 	sleep(1000)
 	DllCall("kernel32.dll", "none", "OutputDebugString", "str", "AutoIt - " &@MON&@MDAY&"-"&@HOUR&@MIN&@SEC)
@@ -93,7 +98,7 @@ EndFunc
 Func downloadInstaller()
 	myLog("Download installer")
 	InetGet("http://update.cyberlink.com/Retail/Patch/U/DL/KNG9DIC9I9/UAppInst.exe",@TempDir & "\UAppinst.exe", $INET_FORCERELOAD)
-	Run(@ComSpec & " /c " & @TempDir & "\UAppinst.exe", @TempDir, @SW_HIDE)
+	Run(@TempDir & "\UAppinst.exe", @TempDir, @SW_HIDE)
 	ConsoleWrite("waiting for downloader ready" &@CRLF)
 	myLog("waiting for downloader ready")
 	$hDownloader = WinWait("[CLASS:CLDownloader]")
@@ -121,7 +126,7 @@ Func waitU()
 		;ConsoleWrite("Exit = " & $hMeetingExit &@CRLF)
 		$hU = WinWaitActive("[TITLE:U;CLASS:U]","",0)
 		WinActivate($hU)
-		$posU = WinGetPos($hU)
+		$posU = _WinGetPos($hU)
 		$_exitColor = PixelGetColor($posU[0] + Floor($posU[2]/2), $posU[1]+ 20)
 		ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
 		sleep(500)
@@ -146,7 +151,7 @@ Func joinMeeting()
 		_joinMeetingSignin()
 	Else
 		;not sign in
-		$posU = WinGetPos($hU)
+		$posU = _WinGetPos($hU)
 		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 480 ,5)
 		MouseClick("Left")
 		sleep(1000)
@@ -169,7 +174,7 @@ Func joinMeeting()
 	WinWaitActive($hMeeting,"",10)
 	ConsoleWrite($hMeeting &@CRLF)
 	myLog("Meeting = " & $hMeeting)
-	$posMeeting = WinGetPos($hMeeting)
+	$posMeeting = _WinGetPos($hMeeting)
 	$_color = 0
 	While Not $_color = 0x575757
 		$_color = hex(PixelGetColor($posMeeting[0] + 15 , $posMeeting[1] + 10))
@@ -194,7 +199,7 @@ Func joinMeeting()
 	While $_exitColor <> 0xB6414A
 		$hMeetingExit = WinGetHandle("[CLASS:Koan]")
 		;ConsoleWrite("Exit = " & $hMeetingExit &@CRLF)
-		$posMeetingExit = WinGetPos($hMeetingExit)
+		$posMeetingExit = _WinGetPos($hMeetingExit)
 		$_exitColor = PixelGetColor($posMeetingExit[0]+ 136, $posMeetingExit[1]+ 118)
 		;ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
 		sleep(500)
@@ -224,7 +229,7 @@ Func joinMeeting()
 		Exit 1
 	EndIf
 
-	$posMeetingEnc = WinGetPos($hMeetingEnc)
+	$posMeetingEnc = _WinGetPos($hMeetingEnc)
 	$_exitColor = 0
 	$_timerEnc = TimerInit()
 	ConsoleWrite("Waiting for enccode window" &@CRLF)
@@ -232,10 +237,9 @@ Func joinMeeting()
 	While $_exitColor <> 0x43A5F0
 		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 0)
 		WinSetOnTop("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]","",1)
-		$posMeetingEnc = WinGetPos($hMeetingEnc)
+		$posMeetingEnc = _WinGetPos($hMeetingEnc)
 		If IsArray($posMeetingEnc) Then $_exitColor = PixelGetColor($posMeetingEnc[0]+ 285, $posMeetingEnc[1]+ 150)
-		sleep(500)
-		If Mod(TimerDiff($_timerEnc),5) = 1 Then $posMeetingEnc = WinGetPos($hMeetingEnc)
+		sleep(1000)
 		If TimerDiff($_timerEnc) > 300 * 1000 Then
 			myLog("[Error] Encode over 5min!")
 			Exit 1
@@ -248,14 +252,14 @@ EndFunc
 
 Func _joinMeetingSignin()
 	$_hU = WinActivate("[TITLE:U;CLASS:U]")
-	$_posU = WinGetPos($_hU)
+	$_posU = _WinGetPos($_hU)
 	MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) -135 , $_posU[1] + 85 , 1, 10)
 	MouseClick("Left", $_posU[0] + 40 , $_posU[1] + 280 ,1, 20)
 	$_idDialog= WinWait("[CLASS:KOAN MSO DLG;W:400\H:360]","",3)
 	Sleep(1000)
 	ConsoleWrite("$_idDialog=" & $_idDialog &@CRLF)
 	myLog("$_idDialog=" & $_idDialog)
-	$_posidDialog = WinGetPos($_idDialog)
+	$_posidDialog = _WinGetPos($_idDialog)
 	If IsArray($_posidDialog) Then
 		ConsoleWrite($_posidDialog[0] + Floor($_posidDialog[2]/2) &":"& $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10 &@CRLF )
 		MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 0 , 30 )
@@ -274,15 +278,16 @@ Func _selectDevice()
 		myLog("skip device selection")
 		Return
 	EndIf
-
+	ToolTip("")
 	Do
 		$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "",20)
 		WinActivate($hMeeting)
 		Sleep(200)
-		$posMeeting = WinGetPos($hMeeting)
+		$posMeeting = _WinGetPos($hMeeting)
 
 	Until PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10) = 0x575757
 	$_timerSearch = TimerInit()
+	myLog("Seatch Button")
 	Do
 		$posButton = PixelSearch( _
 			Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200 , _
@@ -291,13 +296,10 @@ Func _selectDevice()
 	Until IsArray($posButton) or TimerDiff($_timerSearch) > 10 *1000
 
 	ConsoleWrite("Found button? " & IsArray($posButton) &@CRLF)
+	myLog("Found button? " & IsArray($posButton) &@CRLF)
 	if IsArray($posButton) Then
 		ConsoleWrite("click it")
 		MouseClick("Left" , $posButton[0], $posButton[1])
-	Else
-		ConsoleWrite("No click")
-		MouseMove(Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200)
-		MouseMove(Floor($posMeeting[0]+ $posMeeting[2] /2) + 2 ,Floor($posMeeting[1]+ $posMeeting[3] /2) +200, 100)
 	EndIf
 EndFunc
 
@@ -369,7 +371,22 @@ Func UploadData()
 	myLog("Result=" & $a  & " error= " & @error)
 	Local $iFtpc = _FTP_Close($hConn)
 	Local $iFtpo = _FTP_Close($hOpen)
+	myLog("update Google excel")
+	_HTTP_Post("https://docs.google.com/forms/u/1/d/e/1FAIpQLSf4VLDMkYaU9knZR8jy9NC0ybjd5tx3xqkpag96exxMutf2eA/formResponse", "entry.1767768977=" & urlencode($displayName) & "&entry.1475700249=" & urlencode(@ComputerName) & "&entry.1418934191=" & urlencode($UID) )
+	;https://docs.google.com/forms/u/1/d/e/1FAIpQLSf4VLDMkYaU9knZR8jy9NC0ybjd5tx3xqkpag96exxMutf2eA/formResponse?entry.1767768977=1&entry.1475700249=2&entry.1418934191=3&Summit=Summit
 EndFunc
+
+
+Func _WinGetPos($_hWindow , $_txt="")
+	$_pos = WinGetPos($_hWindow)
+	If @error then return $_pos
+	For $i = 0 to 3
+		$_pos[$i] = Int($_pos[$i]*$ratioDPI)
+	Next
+	Return $_pos
+EndFunc
+
+
 
 
 Func Terminate()
