@@ -127,7 +127,7 @@ Func waitU()
 		$hU = WinWaitActive("[TITLE:U;CLASS:U]","",0)
 		WinActivate($hU)
 		$posU = _WinGetPos($hU)
-		$_exitColor = PixelGetColor($posU[0] + Floor($posU[2]/2), $posU[1]+ 20)
+		$_exitColor = _PixelGetColor($posU[0] + Floor($posU[2]/2), $posU[1]+ 20)
 		ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
 		sleep(500)
 		If TimerDiff($_timerExit) > 60 * 1000 Then
@@ -152,18 +152,18 @@ Func joinMeeting()
 	Else
 		;not sign in
 		$posU = _WinGetPos($hU)
-		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 480 ,5)
-		MouseClick("Left")
+		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 480 ,5)
+		_MouseClick("Left")
 		sleep(1000)
-		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 180 ,5)
-		MouseClick("Left")
+		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 180 ,5)
+		_MouseClick("Left")
 		sleep(500)
 		Send($meetingID)
-		MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 225 ,5)
-		MouseClick("Left")
+		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 225 ,5)
+		_MouseClick("Left")
 		send("^a" & @ComputerName)
-		MouseMove($posU[0] + Floor($posU[2]/2) +50  , $posU[1] + 300 ,5)
-		MouseClick("Left")
+		_MouseMove($posU[0] + Floor($posU[2]/2) +50  , $posU[1] + 300 ,5)
+		_MouseClick("Left")
 
 	EndIf
 	$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "" , 10)
@@ -177,33 +177,34 @@ Func joinMeeting()
 	$posMeeting = _WinGetPos($hMeeting)
 	$_color = 0
 	While Not $_color = 0x575757
-		$_color = hex(PixelGetColor($posMeeting[0] + 15 , $posMeeting[1] + 10))
+		$_color = hex(_PixelGetColor($posMeeting[0] + 15 , $posMeeting[1] + 10))
 		sleep(200)
 	WEnd
 	Sleep(4000)
 	Send("{SPACE}")
 	Sleep(1000)
 	;Meeting - recording
-	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
 	myLog("Count down 10 sec")
 	_countDown(10)
 	_ScreenCapture_CaptureWnd($logPath & "\ScreenShot_" & $UID & ".jpg" , $hMeeting)
-	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
 
 	;Meeting - leaving
-	MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
 
 	$_exitColor = -1
 	$_timerExit = TimerInit()
 	$_foundExitWindow = True
-	While $_exitColor <> 0xB6414A
+	While Not IsArray($_exitColor)
 		$hMeetingExit = WinGetHandle("[CLASS:Koan]")
 		;ConsoleWrite("Exit = " & $hMeetingExit &@CRLF)
 		$posMeetingExit = _WinGetPos($hMeetingExit)
-		$_exitColor = PixelGetColor($posMeetingExit[0]+ 136, $posMeetingExit[1]+ 118)
+		$_exitColor = _PixelSearch($posMeetingExit[0]+ 132, $posMeetingExit[1]+ 111,$posMeetingExit[0]+ 136, $posMeetingExit[1]+ 115,0xB6414A)
 		;ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
 		sleep(500)
 		If TimerDiff($_timerExit) > 5 * 1000 Then
+			ConsoleWrite("[Warning] Exit window does not exist over 5sec! switch to location mathod" &@CRLF)
 			myLog("[Warning] Exit window does not exist over 5sec! switch to location mathod")
 			$_foundExitWindow = False
 			ExitLoop
@@ -211,20 +212,29 @@ Func joinMeeting()
 	WEnd
 
 	If $_foundExitWindow Then
-		MouseClick("Left" , $posMeetingExit[0]+ 136, $posMeetingExit[1]+ 113, 1 , 5)
+		ConsoleWrite("Exit meeting window is found" &@CRLF)
+		_MouseClick("Left" , $_exitColor[0], $_exitColor[1], 1 , 10)
 	Else
+		ConsoleWrite("Exit meeting window is NOT found" &@CRLF)
 		WinActivate($hMeeting)
-		MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -80 ,1,10)
+		_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -80 ,1,10)
 	EndIf
 
 	;close encode window
 	ConsoleWrite("exit encode" &@CRLF)
 	myLog("exit encode")
 
-	$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 5)
+	$timerWaitEnc = TimerInit()
+	While TimerDiff($timerWaitEnc) < 10 * 1000
+		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 1)
+		If IsHWnd($hMeetingEnc) Then ExitLoop
+		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:401\h:185]" , "" , 1)
+		If IsHWnd($hMeetingEnc) Then ExitLoop
+	WEnd
 	ConsoleWrite("$hMeetingEnc = " &$hMeetingEnc &@CRLF)
 	myLog("hMeetingEnc = " &$hMeetingEnc)
 	If not $hMeetingEnc Then
+		ConsoleWrite("Encode windows does not exist over 10sec" &@CRLF)
 		myLog("Encode windows does not exist over 10sec")
 		Exit 1
 	EndIf
@@ -232,20 +242,19 @@ Func joinMeeting()
 	$posMeetingEnc = _WinGetPos($hMeetingEnc)
 	$_exitColor = 0
 	$_timerEnc = TimerInit()
-	ConsoleWrite("Waiting for enccode window" &@CRLF)
-	myLog("Waiting for enccode window")
-	While $_exitColor <> 0x43A5F0
-		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 0)
-		WinSetOnTop("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]","",1)
-		$posMeetingEnc = _WinGetPos($hMeetingEnc)
-		If IsArray($posMeetingEnc) Then $_exitColor = PixelGetColor($posMeetingEnc[0]+ 285, $posMeetingEnc[1]+ 150)
+	ConsoleWrite("Waiting for encode task" &@CRLF)
+	myLog("Waiting for encode task")
+	WinSetOnTop($posMeetingEnc,"",1)
+	While Not IsArray($_exitColor)
+		$_exitColor = _PixelSearch($posMeetingEnc[0]+ 283 , $posMeetingEnc[1]+ 148 , $posMeetingEnc[0]+ 287 , $posMeetingEnc[1]+ 152 , 0x43A5F0)
 		sleep(1000)
 		If TimerDiff($_timerEnc) > 300 * 1000 Then
 			myLog("[Error] Encode over 5min!")
 			Exit 1
 		EndIf
 	WEnd
-	MouseClick("Left",$posMeetingEnc[0]+ 285, $posMeetingEnc[1]+ 150,1,5)
+	ConsoleWrite("close encode window" &@CRLF)
+	_MouseClick("Left",$_exitColor[0], $_exitColor[1]+ 150,1,5)
 
 
 EndFunc
@@ -253,8 +262,8 @@ EndFunc
 Func _joinMeetingSignin()
 	$_hU = WinActivate("[TITLE:U;CLASS:U]")
 	$_posU = _WinGetPos($_hU)
-	MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) -135 , $_posU[1] + 85 , 1, 10)
-	MouseClick("Left", $_posU[0] + 40 , $_posU[1] + 280 ,1, 20)
+	_MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) -135 , $_posU[1] + 85 , 1, 10)
+	_MouseClick("Left", $_posU[0] + 40 , $_posU[1] + 280 ,1, 20)
 	$_idDialog= WinWait("[CLASS:KOAN MSO DLG;W:400\H:360]","",3)
 	Sleep(1000)
 	ConsoleWrite("$_idDialog=" & $_idDialog &@CRLF)
@@ -262,9 +271,9 @@ Func _joinMeetingSignin()
 	$_posidDialog = _WinGetPos($_idDialog)
 	If IsArray($_posidDialog) Then
 		ConsoleWrite($_posidDialog[0] + Floor($_posidDialog[2]/2) &":"& $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10 &@CRLF )
-		MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 0 , 30 )
+		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 0 , 30 )
 		Send($meetingID)
-		MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2) + 50, $_posidDialog[1] + Floor($_posidDialog[3]/2) + 130 , 20)
+		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2) + 50, $_posidDialog[1] + Floor($_posidDialog[3]/2) + 130 , 20)
 	EndIf
 
 EndFunc
@@ -285,11 +294,11 @@ Func _selectDevice()
 		Sleep(200)
 		$posMeeting = _WinGetPos($hMeeting)
 
-	Until PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10) = 0x575757
+	Until _PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10) = 0x575757
 	$_timerSearch = TimerInit()
 	myLog("Seatch Button")
 	Do
-		$posButton = PixelSearch( _
+		$posButton = _PixelSearch( _
 			Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200 , _
 			Floor($posMeeting[0]+ $posMeeting[2] /2) + 2 ,Floor($posMeeting[1]+ $posMeeting[3] /2) +200 , 0x43A5F0 _
 			)
@@ -298,8 +307,9 @@ Func _selectDevice()
 	ConsoleWrite("Found button? " & IsArray($posButton) &@CRLF)
 	myLog("Found button? " & IsArray($posButton) &@CRLF)
 	if IsArray($posButton) Then
-		ConsoleWrite("click it")
-		MouseClick("Left" , $posButton[0], $posButton[1])
+		ConsoleWrite("click it" & @CRLF)
+
+		_MouseClick("Left" , $posButton[0], $posButton[1]+5)
 	EndIf
 EndFunc
 
@@ -378,15 +388,41 @@ EndFunc
 
 
 Func _WinGetPos($_hWindow , $_txt="")
-	$_pos = WinGetPos($_hWindow)
+	$_pos = WinGetPos($_hWindow,$_txt)
 	If @error then return $_pos
-	For $i = 0 to 3
-		$_pos[$i] = Int($_pos[$i]*$ratioDPI)
-	Next
+;~ 	For $i = 0 to 3
+;~ 		$_pos[$i] = Int($_pos[$i]*$ratioDPI)
+;~ 	Next
 	Return $_pos
 EndFunc
 
+Func _MouseMove($_x, $_y, $_speed = 10)
+	;MouseMove( int($_x / $ratioDPI), int($_y /$ratioDPI ), $_speed)
+	MouseMove( $_x , $_y , $_speed)
+EndFunc
 
+Func _MouseClick($_btn,$_x="xx",$_y = "yy",$_clicks = 1,$_spd = 10)
+	$_posMouse = MouseGetPos()
+;~ 	$_x = $_x="xx"?$_posMouse[0]:int($_x/$ratioDPI)
+;~ 	$_y = $_y="yy"?$_posMouse[1]:int($_y/$ratioDPI)
+	$_x = $_x="xx"?$_posMouse[0]:$_x
+	$_y = $_y="yy"?$_posMouse[1]:$_y
+	MouseClick($_btn,$_x,$_y ,$_clicks ,$_spd )
+EndFunc
+
+
+Func _PixelGetColor($_x,$_y)
+	Return PixelGetColor(int($_x * $ratioDPI),int($_y* $ratioDPI))
+EndFunc
+
+Func _PixelSearch($_t,$_l,$_r,$_b,$_color)
+	$_pos = PixelSearch(int($_t * $ratioDPI),int($_l * $ratioDPI),int($_r * $ratioDPI),int($_b * $ratioDPI),$_color)
+	If IsArray($_pos) Then
+		$_pos[0] = Int($_pos[0]/$ratioDPI)
+		$_pos[1] = Int($_pos[1]/$ratioDPI)
+		EndIf
+	Return $_pos
+EndFunc
 
 
 Func Terminate()
