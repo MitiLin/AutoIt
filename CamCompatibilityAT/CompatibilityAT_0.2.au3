@@ -50,7 +50,7 @@ waitU()
 joinMeeting()
 
 finishProcess()
-
+Sleep(2000)
 packageData()
 UploadData()
 MsgBox (0,"Compatibility","Files upload finished. Thanks for help!")
@@ -154,16 +154,17 @@ Func joinMeeting()
 		$posU = _WinGetPos($hU)
 		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 480 ,5)
 		_MouseClick("Left")
-		sleep(1000)
+		sleep(1500)
 		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 180 ,5)
 		_MouseClick("Left")
-		sleep(500)
+		sleep(1500)
 		$tmp = ClipGet()
 		ClipPut($meetingID)
-		Send("^a")
+		Send("^v")
 		ClipPut($tmp)
 		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 225 ,5)
 		_MouseClick("Left")
+		Sleep(1500)
 		send("^a" & @ComputerName)
 		_MouseMove($posU[0] + Floor($posU[2]/2) +50  , $posU[1] + 300 ,5)
 		_MouseClick("Left")
@@ -246,11 +247,23 @@ Func joinMeeting()
 	$_exitColor = 0
 	$_timerEnc = TimerInit()
 	ConsoleWrite("Waiting for encode task" &@CRLF)
-	myLog("Waiting for encode task")
+	myLog("Waiting for encode task:" & $posMeetingEnc)
 	WinSetOnTop($posMeetingEnc,"",1)
 	While Not IsArray($_exitColor)
+		$hMeetingEnc = WinWait("[TITLE:CyberLink;CLASS:Koan;w:402\h:186]" , "" , 1)
+		$hMeetingEnc = IsHWnd($hMeetingEnc)?$hMeetingEnc:WinWait("[TITLE:CyberLink;CLASS:Koan;w:401\h:185]" , "" , 1)
+		If IsHWnd($hMeetingEnc) Then $posMeetingEnc = _WinGetPos($hMeetingEnc)
+
 		$_exitColor = _PixelSearch($posMeetingEnc[0]+ 283 , $posMeetingEnc[1]+ 148 , $posMeetingEnc[0]+ 287 , $posMeetingEnc[1]+ 152 , 0x43A5F0)
-		sleep(1000)
+;~ 		sleep(1000)
+;~ 		If mod(TimerDiff($_timerEnc),5) = 0 Then
+;~ 		$posTemp = MouseGetPos()
+;~ 			_MouseMove($posMeetingEnc[0]+ 283 , $posMeetingEnc[1]+ 148 , 0)
+;~ 			_MouseMove($posMeetingEnc[0]+ 287 , $posMeetingEnc[1]+ 152, 5)
+;~ 			MouseMove($posTemp[0],$posTemp[1])	; do not user _mousemove
+;~ 		EndIf
+
+
 		If TimerDiff($_timerEnc) > 300 * 1000 Then
 			myLog("[Error] Encode over 5min!")
 			Exit 1
@@ -290,16 +303,27 @@ Func _selectDevice()
 		myLog("skip device selection")
 		Return
 	EndIf
-	ToolTip("")
+	MyLog("Selecting device")
+	$timerWaitMeeting = TimerInit()
+	$flagMeetingWindow = True
 	Do
-		$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "",20)
+		$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "",3)
 		WinActivate($hMeeting)
 		Sleep(200)
 		$posMeeting = _WinGetPos($hMeeting)
+		If TimerDiff($timerWaitMeeting) > 20 * 1000 Then
+			$flagMeetingWindow = False
+			ExitLoop
+		EndIf
 
-	Until _PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10) = 0x575757
+	Until _PixelGetColor($posMeeting[0] + int($posMeeting[3]/2) , $posMeeting[1] +10) = 0x575757
+	If Not $flagMeetingWindow Then
+		myLog ("Meeting window error = " & hex(_PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10)) &@CRLF)
+		_MouseMove($posMeeting[0] +20 , $posMeeting[1] +10)
+		exit 1
+	EndIf
 	$_timerSearch = TimerInit()
-	myLog("Seatch Button")
+	myLog("Waiting for confirm Button")
 	Do
 		$posButton = _PixelSearch( _
 			Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200 , _
@@ -353,21 +377,28 @@ Func packageData()
 	$Zip = _Zip_Create($zipName)
 	ConsoleWrite("zip1"&@CRLF)
 	myLog("zip1")
+	sleep(500)
 	_Zip_AddFile($Zip,$logPath &'\dxdiag_output.txt')
 	ConsoleWrite("zip2"&@CRLF)
 	myLog("zip2")
+	sleep(500)
 	_Zip_AddFile($Zip,$logPath &'\UCompatibility_' & $UID & '.log')
 	ConsoleWrite("zip3"&@CRLF)
 	myLog("zip3")
+	sleep(500)
 	_Zip_AddFile($Zip,$logPath &'\ScreenShot_' & $UID & '.jpg')
 	ConsoleWrite("zip4"&@CRLF)
 	myLog("zip4")
+	sleep(500)
 	_Zip_AddFile($Zip,$logPath & "\U_Dbgview_" & $UID & ".log")
+
 	$videoList = _FileListToArray(@UserProfileDir & "\Videos\U Meeting Recordings")
 	ConsoleWrite("zip5"&@CRLF)
+	sleep(500)
 	myLog("zip5")
 	_Zip_Addfolder($Zip,@UserProfileDir & "\Videos\U Meeting Recordings\" & $videoList[$videoList[0]]& "\", 0)
 	ConsoleWrite("zip6"&@CRLF)
+	sleep(500)
 	myLog("zip6")
 	_Zip_Addfolder($Zip,@LocalAppDataDir & "\CyberLink\U\dmp\", 0)
 EndFunc

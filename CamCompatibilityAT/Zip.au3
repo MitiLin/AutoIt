@@ -62,18 +62,13 @@ Func _Zip_AddFile($hZipFile, $hFile2Add, $flag = 1)
 	If $DLLChk <> 0 Then Return SetError($DLLChk, 0, 0);no dll
 	If not _IsFullPath($hZipFile) then Return SetError(4,0) ;zip file isn't a full path
 	If Not FileExists($hZipFile) Then Return SetError(1, 0, 0) ;no zip file
-	$oApp = ObjCreate("Shell.Application")
-	If Not IsObj($oApp) Then
-		For $i = 1 to 3
-			$oApp = ObjCreate("Shell.Application")
-			If IsObj($oApp) Then ExitLoop
-		Next
-	EndIf
+	Static $oApp = ObjCreate("Shell.Application")
 	$copy = $oApp.NameSpace($hZipFile).CopyHere($hFile2Add)
 	While 1
 		If $flag = 1 then _Hide()
-		If _Zip_Count($hZipFile) = ($files+1) Then ExitLoop
-		Sleep(10)
+		;If _Zip_Count($hZipFile) = ($files+1) Then ExitLoop
+		If not _FileInUse($hZipFile) then ExitLoop
+		Sleep(100)
 	WEnd
 	Return SetError(0,0,1)
 EndFunc   ;==>_Zip_AddFile
@@ -104,21 +99,56 @@ Func _Zip_AddFolder($hZipFile, $hFolder, $flag = 1)
 	If Not FileExists($hZipFile) Then Return SetError(1, 0, 0) ;no zip file
 	If StringRight($hFolder, 1) <> "\" Then $hFolder &= "\"
 	$files = _Zip_Count($hZipFile)
-	$oApp = ObjCreate("Shell.Application")
-	If Not IsObj($oApp) Then
-		For $i = 1 to 3
-			$oApp = ObjCreate("Shell.Application")
-			If IsObj($oApp) Then ExitLoop
-		Next
-	EndIf
+	Static $oApp = ObjCreate("Shell.Application")
 	$oCopy = $oApp.NameSpace($hZipFile).CopyHere($oApp.Namespace($hFolder))
 	While 1
 		If $flag = 1 then _Hide()
-		If _Zip_Count($hZipFile) = ($files+1) Then ExitLoop
-		Sleep(10)
+		;If _Zip_Count($hZipFile) = ($files+1) Then ExitLoop
+		If not _FileInUse($hZipFile) then ExitLoop
+		Sleep(100)
 	WEnd
 	Return SetError(0,0,1)
 EndFunc   ;==>_Zip_AddFolder
+
+
+Func _FileInUse($sFilename, $iAccess = 0)
+    Local $aRet, $hFile, $iError, $iDA
+    Local Const $GENERIC_WRITE = 0x40000000
+    Local Const $GENERIC_READ = 0x80000000
+    Local Const $FILE_ATTRIBUTE_NORMAL = 0x80
+    Local Const $OPEN_EXISTING = 3
+    $iDA = $GENERIC_READ
+    If BitAND($iAccess, 1) <> 0 Then $iDA = BitOR($GENERIC_READ, $GENERIC_WRITE)
+    $aRet = DllCall("Kernel32.dll", "hwnd", "CreateFile", _
+            "str", $sFilename, _;lpFileName
+            "dword", $iDA, _;dwDesiredAccess
+            "dword", 0x00000000, _;dwShareMode = DO NOT SHARE
+            "dword", 0x00000000, _;lpSecurityAttributes = NULL
+            "dword", $OPEN_EXISTING, _;dwCreationDisposition = OPEN_EXISTING
+            "dword", $FILE_ATTRIBUTE_NORMAL, _;dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL
+            "hwnd", 0);hTemplateFile = NULL
+    $iError = @error
+    If @error Or IsArray($aRet) = 0 Then Return SetError($iError, 0, -1)
+    $hFile = $aRet[0]
+    If $hFile = -1 Then;INVALID_HANDLE_VALUE = -1
+        $aRet = DllCall("Kernel32.dll", "int", "GetLastError")
+    ;ERROR_SHARING_VIOLATION = 32 0x20
+    ;The process cannot access the file because it is being used by another process.
+        If @error Or IsArray($aRet) = 0 Then Return SetError($iError, 0, 1)
+        Return SetError($aRet[0], 0, 1)
+    Else
+    ;close file handle
+        DllCall("Kernel32.dll", "int", "CloseHandle", "hwnd", $hFile)
+        Return SetError(@error, 0, 0)
+    EndIf
+EndFunc  ;==>_FileInUse
+
+
+
+
+
+
+
 
 ;===============================================================================
 ;
