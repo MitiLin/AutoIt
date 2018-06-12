@@ -1,0 +1,2 @@
+[*.EXE without CTV.SIM]
+C:\Program Files (x86)\CyberLink\LabelPrint
