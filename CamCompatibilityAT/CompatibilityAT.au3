@@ -1,3 +1,6 @@
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Res_Fileversion=1.2.2
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #cs ----------------------------------------------------------------------------
 
  AutoIt Version: 3.3.12.0
@@ -19,8 +22,12 @@
 #include <file.au3>
 #include <FTPEx.au3>
 #include <HTTP.au3>
+ #include <Color.au3>
 
 Global $dbgView
+Global $pStub_MouseProc, $hHookMouse, $pStub_KeyProc, $hHookKeyboard
+Global $timerRunTime = TimerInit()
+
 $logPath = @LocalAppDataDir & "\AutoIt"
 $meetingID = 120404031
 $UID = StringTrimRight(StringTrimLeft(_WinAPI_UniqueHardwareID($UHID_All),1),1)
@@ -36,18 +43,23 @@ HotKeySet("{ESC}", "Terminate")
 
 ;=========GUI==============
 $guiWidth = 270
-$guiHeight = 100
+$guiHeight = 125
 GUICreate("Compatibility check" ,$guiWidth , $guiHeight , Int((@DesktopWidth - $guiWidth)/2), Int((@DesktopHeight - $guiHeight)/2))
-;~ $guiBlockMouse = GUICtrlCreateCheckbox("Block mouse (not work)",10,10)
-;~ GUICtrlSetState(-1,1)
-;~ $guiBlockKeyboard = GUICtrlCreateCheckbox('Block keyboard ("F8" to release)(not work)',10,30)
-;~ GUICtrlSetState(-1,1)
+$guiBlockMouse = GUICtrlCreateCheckbox("Block mouse",10,10)
+GUICtrlSetState(-1,1)
+$guiBlockKeyboard = GUICtrlCreateCheckbox('Block keyboard ("F8" to release)',10,30)
+GUICtrlSetState(-1,0)
 
-GUICtrlCreateLabel("Display Name" , 10 , 52 , 80)
-GUICtrlCreateLabel('You can hit "ESC" to stop.' , 30 , 20)
-$inputName = GUICtrlCreateInput("", 95,50 , 150)
+GUICtrlCreateLabel("Name" , 15 , 54 , 80)
+$inputName = GUICtrlCreateInput("", 70,50 , 150)
+
+
+GUICtrlCreateLabel("Platform" , 15 , 79 , 80)
+$inputPlatform = GUICtrlCreateInput("", 70,75 , 150)
 GUICtrlSetState(-1,256) ; focus on display name
-$btnStart = GUICtrlCreateButton("Start!" , 120 , 73 , 50, 25)
+
+GUICtrlCreateLabel('Hit "ESC" to stop.' , 10 , 110)
+$btnStart = GUICtrlCreateButton("Start!" , 120 , 98 , 50, 25)
 
 $iENTER = GUICtrlCreateDummy()
 Dim $AccelKeys[1][2] = [["{ENTER}", $iENTER]]; Set accelerators
@@ -55,8 +67,8 @@ GUISetAccelerators($AccelKeys)
 
 GUISetState()
 $displayName = ""
-$isBlockMouse = False
-$isBlockKeyboard = False
+Global $isBlockMouse = False
+Global $isBlockKeyboard = False
 While 1
         Switch GUIGetMsg()
             Case -3
@@ -68,28 +80,26 @@ While 1
         EndSwitch
 WEnd
 
-;~ 				$isBlockMouse = (GUICtrlRead($guiBlockMouse) = 1)? True : False	; 1 checked, 4 unchecked
-;~ 				$isBlockKeyboard = (GUICtrlRead($guiBlockKeyboard)=1)? True : False
+$isBlockMouse = (GUICtrlRead($guiBlockMouse) = 1)? True : False	; 1 checked, 4 unchecked
+$isBlockKeyboard = (GUICtrlRead($guiBlockKeyboard)=1)? True : False
+;~ $isBlockMouse = False
+;~ $isBlockKeyboard = False
 $displayName = GUICtrlRead($inputName)
+$platformName = GUICtrlRead($inputPlatform)
 If $displayName = "" Then $displayName = "[Empty]"
-$isBlockMouse = False
-$isBlockKeyboard = False
+If $platformName = "" Then $platformName = "[PlatformEmpty]"
 GUISetState(@SW_HIDE)
-;======= GUI end ============
-If $isBlockMouse Then
-	Global $pStub_MouseProc = DllCallbackRegister ("_Mouse_Handler", "int", "int;ptr;ptr")
-	Global $hHookMouse = _WinAPI_SetWindowsHookEx($WH_MOUSE_LL, DllCallbackGetPtr($pStub_MouseProc), _WinAPI_GetModuleHandle(0), 0)
+BlockInitial()
+; ================ GUI End ============================
+
+
+If @OSVersion = "WIN_81" or @OSVersion = "WIN_8" Then
+
+	$ratioDPI = int(RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics","AppliedDPI"))/96
+Else
+	$ratioDPI = 1
 EndIf
-If $isBlockKeyboard Then
-	Global $pStub_KeyProc = DllCallbackRegister("_KeyProc", "int", "int;ptr;ptr")
-	Global $hHookKeyboard = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, DllCallbackGetPtr($pStub_KeyProc), _WinAPI_GetModuleHandle(0), 0)
-EndIf
 
-
-
-
-
-$ratioDPI = int(RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics","AppliedDPI"))/96
 
 
 
@@ -109,6 +119,9 @@ finishProcess()
 Sleep(2000)
 packageData()
 UploadData()
+
+UnblockKeyboard()
+UnblockMouse()
 MsgBox (0,"Compatibility","Files upload finished. Thanks for help!")
 
 
@@ -118,18 +131,19 @@ Func createTempFolder($logPath = @LocalAppDataDir & "\AutoIt")
 	myLog("Create tmpFolder")
 	If not FileExists($logPath) Then DirCreate($logPath)
 	FileInstall(".\Dbgview.exe" , $logPath & "\Dbgview.exe",0)
+	myLog("OS = " & @OSVersion )
 	myLog("DPI Ratio =" & $ratioDPI)
 EndFunc
 
 Func getDxlog()
 	myLog("Get DxLog")
- 	Run(@SystemDir & '\dxdiag /dontskip /t dxdiag_output.txt', $logPath, @SW_HIDE)
+ 	Run('"' & @SystemDir & '\dxdiag"  /dontskip /t dxdiag_output.txt', $logPath, @SW_HIDE)
 EndFunc
 
 Func launchDBG()
 	myLog("launch DBG")
 	RegWrite("HKEY_CURRENT_USER\Software\Sysinternals\DbgView", "EulaAccepted", "REG_DWORD", 1)
-	Run($logPath & '\dbgview /t /l ' & $logPath &"\U_Dbgview_" & $UID & ".log /p" , "", @SW_HIDE)
+	Run('"' & $logPath & '\dbgview" /t /l "' & $logPath &'\U_Dbgview_' & $UID & '.log" /p' , "", @SW_HIDE)
 	$dbgView = ProcessWait ( "Dbgview.exe" , 5)
 	sleep(1000)
 	DllCall("kernel32.dll", "none", "OutputDebugString", "str", "AutoIt - " &@MON&@MDAY&"-"&@HOUR&@MIN&@SEC)
@@ -167,7 +181,7 @@ EndFunc
 
 Func launchU()
 	myLog("Launch U")
-	Run(@AppDataCommonDir & "\Cyberlink\U\U.exe","",@SW_HIDE)
+	Run('"' & @AppDataCommonDir & '\Cyberlink\U\U.exe"',"",@SW_HIDE)
 EndFunc
 
 Func waitU()
@@ -184,6 +198,7 @@ Func waitU()
 		WinActivate($hU)
 		$posU = _WinGetPos($hU)
 		$_exitColor = _PixelGetColor($posU[0] + Floor($posU[2]/2), $posU[1]+ 20)
+		MyLog("pos = " & $posU[0] & "," & $posU[1] & " / color = " & $_exitColor &@CRLF )
 		ConsoleWrite("Exit color = " & hex($_exitColor) &@CRLF)
 		sleep(500)
 		If TimerDiff($_timerExit) > 60 * 1000 Then
@@ -203,6 +218,7 @@ Func joinMeeting()
 	$hU = WinActivate("[TITLE:U;CLASS:U]")
 	If isSignIn() Then
 		;sign in already
+		MyLog("sign in already")
 		ConsoleWrite("sign in already" &@CRLF)
 		_joinMeetingSignin()
 	Else
@@ -215,13 +231,16 @@ Func joinMeeting()
 		_MouseClick("Left")
 		$tmp = ClipGet()
 		ToolTip("ID = " & $meetingID,0,0)
-		While $tmp = ClipGet()
+		While $meetingID <> ClipGet()
 			ClipPut($meetingID)
+			sleep(200)
 		WEnd
+		UnblockKeyboard()
 		sleep(1000)
 		Send("^v")
 		ClipPut($tmp)
 		sleep(1000)
+		BlockKeyboard()
 		_MouseMove($posU[0] + Floor($posU[2]/2)  , $posU[1] + 225 ,5)
 		_MouseClick("Left")
 		Sleep(1000)
@@ -231,7 +250,9 @@ Func joinMeeting()
 
 	EndIf
 	$hMeeting = WinWait("[CLASS:CLMeetingsMainWindow]" , "" , 10)
-
+	sleep(1000)
+	WinSetState ($hMeeting,"",@SW_RESTORE)
+	sleep(1000)
 	; in Meeting window
 	_selectDevice()
 	myLog("Wait for Meeting windows is activate")
@@ -247,17 +268,21 @@ Func joinMeeting()
 
 	;Meeting - recording
 	$_color = 0
+	UnblockKeyboard()
 	Sleep(4000)
 	Send("{SPACE}")
 	Sleep(1000)
+	BlockKeyboard()
 	myLog("Wait rec button is ready")
 	While Not $_color = 0x2A888F
-		$_color = hex(_PixelGetColor($posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] -60))
+		$_color = hex(_PixelGetColor($posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -60))
 		sleep(200)
 	WEnd
-
-
+	myLog("Waiting for recording")
+	Do
 	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	Until _isRecording($hMeeting)
+
 	myLog("Count down 20 sec")
 	_countDown(20)
 	_ScreenCapture_CaptureWnd($logPath & "\ScreenShot_" & $UID & ".jpg" , $hMeeting)
@@ -339,7 +364,7 @@ Func joinMeeting()
 		EndIf
 	WEnd
 	ConsoleWrite("close encode window" &@CRLF)
-	_MouseClick("Left",$_exitColor[0], $_exitColor[1],1,5)
+	_MouseClick("Left",$_exitColor[0] - 50, $_exitColor[1],1,5)
 
 
 EndFunc
@@ -357,18 +382,19 @@ Func _joinMeetingSignin()
 	$_posidDialog = _WinGetPos($_idDialog)
 	If IsArray($_posidDialog) Then
 		ConsoleWrite($_posidDialog[0] + Floor($_posidDialog[2]/2) &":"& $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10 &@CRLF )
-		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 0 , 30 )
+		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2), $_posidDialog[1] + Floor($_posidDialog[3]/2) - 10, 1 , 30 )
 		$tmp = ClipGet()
 		ToolTip("ID = " & $meetingID,0,0)
 		While $tmp = ClipGet()
 			ClipPut($meetingID)
 		WEnd
-
+		BlockKeyboard()
 		sleep(1000)
 		Send("^v")
 		ClipPut($tmp)
 		Sleep(1000)
-		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2) + 50, $_posidDialog[1] + Floor($_posidDialog[3]/2) + 130 , 20)
+		UnblockKeyboard()
+		_MouseClick("Left", $_posidDialog[0] + Floor($_posidDialog[2]/2) + 50, $_posidDialog[1] + Floor($_posidDialog[3]/2) + 130 , 1,20)
 	EndIf
 
 EndFunc
@@ -395,14 +421,14 @@ Func _selectDevice()
 			ExitLoop
 		EndIf
 
-	Until _PixelGetColor($posMeeting[0] + int($posMeeting[3]/2) , $posMeeting[1] +10) = 0x575757
+	Until _PixelGetColor($posMeeting[0] + int($posMeeting[2]/2) , $posMeeting[1] +10) = 0x575757
 	If Not $flagMeetingWindow Then
-		myLog ("Meeting window error = " & hex(_PixelGetColor($posMeeting[0] +20 , $posMeeting[1] +10)) &@CRLF)
-		_MouseMove($posMeeting[0] +20 , $posMeeting[1] +10)
+		myLog ("Meeting window error = " & hex(_PixelGetColor(Floor($posMeeting[0] + int($posMeeting[2]/2)) , $posMeeting[1] +10)) &@CRLF)
+		_MouseMove(Floor($posMeeting[0] + int($posMeeting[2]/2)) , $posMeeting[1] +10)
 		exit 1
 	EndIf
 	$_timerSearch = TimerInit()
-	myLog("Waiting for confirm Button")
+	myLog("Waiting for cam selection Button")
 	Do
 		$posButton = _PixelSearch( _
 			Floor($posMeeting[0]+ $posMeeting[2] /2) - 2, Floor($posMeeting[1]+ $posMeeting[3] /2) -200 , _
@@ -420,7 +446,7 @@ Func _selectDevice()
 EndFunc
 
 Func isSignIn()
-	return FileExists(@LocalAppDataDir & "\Cyberlink\U\userinfo.cache")? True : False
+	return FileExists( @LocalAppDataDir & '\Cyberlink\U\userinfo.cache')? True : False
 EndFunc
 Func _countDown($__duration = 10)
 	$__last = -1
@@ -435,7 +461,7 @@ EndFunc
 
 Func myLog($_data1 = '[empty]', $_data2 = '', $_data3 = '', $_data4 = '', $_data5  = '')
 	ToolTip($_data1,0,0)
-	FileWriteLine($logPath & "\UCompatibility_" & $UID & ".log", _
+	FileWriteLine($logPath & "\UCompatibility_" & $UID & '.log', _
 	@YEAR &"-"& @MON &"-"& @MDAY  &"/"& @HOUR &":"& @MIN &":"& @SEC & @TAB & $_data1 & _
 	(($_data2="")?"": ", " & $_data2) & _
 	(($_data3="")?"": ", " & $_data3) & _
@@ -486,7 +512,7 @@ EndFunc
 
 Func UploadData()
 
-	For $i = 1 to 3
+	For $i = 1 to 5
 		ConsoleWrite("upload now -" & $i)
 		myLog("upload now -"  & $i)
 		Local $hOpen = _FTP_Open('MyFTP Control')
@@ -496,6 +522,9 @@ Func UploadData()
 		Local $iFtpc = _FTP_Close($hConn)
 		Local $iFtpo = _FTP_Close($hOpen)
 		If $a = 1 Then ExitLoop
+		ToolTip("waiting for 3 sec then retry upload.",0,0)
+		myLog("waiting for 3 sec then retry upload.")
+		Sleep(3000)
 	Next
 	$iFileSize = FileGetSize($logPath & '\' &$UID& '.zip')
 	ConsoleWrite("Result=" & $a &@CRLF & "error= " & @error &@CRLF)
@@ -506,7 +535,9 @@ Func UploadData()
 	"&entry.1475700249=" & urlencode(@ComputerName) & _
 	"&entry.1418934191=" & urlencode($UID) & _
 	"&entry.992188141=" & urlencode(($a=1)? True : False) & _
-	"&entry.192209300=" & urlencode($iFileSize) _
+	"&entry.192209300=" & urlencode($iFileSize) & _
+	"&entry.717725288=" & urlencode(Int(TimerDiff($timerRunTime)/1000)) & _
+	"&entry.786528118=" & urlencode($platformName)  _
 	)
 	;https://docs.google.com/forms/u/1/d/e/1FAIpQLSf4VLDMkYaU9knZR8jy9NC0ybjd5tx3xqkpag96exxMutf2eA/formResponse?entry.1767768977=1&entry.1475700249=2&entry.1418934191=3&Summit=Summit
 EndFunc
@@ -522,22 +553,28 @@ Func _WinGetPos($_hWindow , $_txt="")
 EndFunc
 
 Func _MouseMove($_x, $_y, $_speed = 10)
+	UnblockMouse()
 	;MouseMove( int($_x / $ratioDPI), int($_y /$ratioDPI ), $_speed)
 	MouseMove( $_x , $_y , $_speed)
+	BlockMouse()
 EndFunc
 
 Func _MouseClick($_btn,$_x="xx",$_y = "yy",$_clicks = 1,$_spd = 10)
+	UnblockMouse()
 	$_posMouse = MouseGetPos()
 ;~ 	$_x = $_x="xx"?$_posMouse[0]:int($_x/$ratioDPI)
 ;~ 	$_y = $_y="yy"?$_posMouse[1]:int($_y/$ratioDPI)
 	$_x = $_x="xx"?$_posMouse[0]:$_x
 	$_y = $_y="yy"?$_posMouse[1]:$_y
 	MouseClick($_btn,$_x,$_y ,$_clicks ,$_spd )
+	BlockMouse()
 EndFunc
 
 
 Func _PixelGetColor($_x,$_y)
-	Return PixelGetColor(int($_x * $ratioDPI),int($_y* $ratioDPI))
+	$color = PixelGetColor(int($_x * $ratioDPI),int($_y* $ratioDPI))
+	myLog("pos = " & int($_x * $ratioDPI & "." & int($_y* $ratioDPI) & " / color = " & hex($color) ))
+	Return $color
 EndFunc
 
 Func _PixelSearch($_t,$_l,$_r,$_b,$_color)
@@ -554,10 +591,37 @@ Func _KeyProc($nCode, $wParam, $lParam)
 
     Local $KBDLLHOOKSTRUCT = DllStructCreate("dword vkCode;dword scanCode;dword flags;dword time;ptr dwExtraInfo", $lParam)
     Local $vkCode = DllStructGetData($KBDLLHOOKSTRUCT, "vkCode")
+	myLog("keyboard proc = " & $vkCode & @CRLF)
+;~     If $vkCode <> 0x77 Then Return 1 ; 77 = F8
+;~ 	If $vkCode <> 0x1B Then Terminate() ; 0x1B = esc
+;~     _WinAPI_CallNextHookEx($hHookKeyboard, $nCode, $wParam, $lParam)
+	Switch $vkCode
+		Case 0x1B
+			_WinAPI_CallNextHookEx($hHookKeyboard, $nCode, $wParam, $lParam)
+		Case 0x77
+			UnblockKeyboard()
+			$isBlockKeyboard = False
+			Return 1
+		Case Else
+			Return 1
+	EndSwitch
 
-    If $vkCode <> 0x77 Then Return 1 ; 77 = F8
 
-    _WinAPI_CallNextHookEx($hHookKeyboard, $nCode, $wParam, $lParam)
+
+EndFunc
+Func _isRecording($_hMeeting)
+	$_posMeeting = WinGetPos($_hMeeting)
+	_mousemove($_posMeeting[0] + Floor($_posMeeting[2]/2) , $_posMeeting[1] + $_posMeeting[3] - 40)
+	_mousemove($_posMeeting[0] + Floor($_posMeeting[2]/2) + 50 , $_posMeeting[1] + $_posMeeting[3] - 40 , 15)
+	Sleep(1000)
+	$_color = _PixelGetColor($_posMeeting[0] + Floor($_posMeeting[2]/2) + 30 , $_posMeeting[1] + $_posMeeting[3] - 40)
+	$col = _ColorGetRGB($_color)
+	ConsoleWrite("Rec Button =" & hex($col) &@CRLF)
+	If $col[0]-0x98 < 0x03 And $col[1]-0x1c < 0x03 And $col[2]-0x3D < 0x03 Then
+		Return True
+	Else
+		Return	False
+	EndIf
 EndFunc
 
 Func _Mouse_Handler($nCode, $wParam, $lParam)
@@ -567,6 +631,43 @@ Func _Mouse_Handler($nCode, $wParam, $lParam)
 EndFunc
 
 
+Func BlockInitial()
+	If $isBlockMouse then
+		$pStub_MouseProc = DllCallbackRegister ("_Mouse_Handler", "int", "int;ptr;ptr")
+		$hHookMouse = _WinAPI_SetWindowsHookEx($WH_MOUSE_LL, DllCallbackGetPtr($pStub_MouseProc), _WinAPI_GetModuleHandle(0), 0)
+	EndIf
+	If $isBlockKeyboard Then
+		$pStub_KeyProc = DllCallbackRegister("_KeyProc", "int", "int;ptr;ptr")
+		$hHookKeyboard = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, DllCallbackGetPtr($pStub_KeyProc), _WinAPI_GetModuleHandle(0), 0)
+	EndIf
+EndFunc
+
+Func BlockMouse()
+	If $isBlockMouse Then
+		$hHookMouse = _WinAPI_SetWindowsHookEx($WH_MOUSE_LL, DllCallbackGetPtr($pStub_MouseProc), _WinAPI_GetModuleHandle(0), 0)
+	EndIf
+EndFunc
+
+Func UnblockMouse()
+	If $isBlockMouse Then
+		_WinAPI_UnhookWindowsHookEx($hHookMouse)
+	EndIf
+EndFunc
+
+Func BlockKeyboard()
+	If not $isBlockKeyboard then Return 1
+	$hHookKeyboard = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, DllCallbackGetPtr($pStub_KeyProc), _WinAPI_GetModuleHandle(0), 0)
+EndFunc
+
+Func UnblockKeyboard()
+	If not $isBlockKeyboard then Return 1
+	_WinAPI_UnhookWindowsHookEx($hHookKeyboard)
+EndFunc
+
+
+
+
+
 Func Terminate()
 
     Exit
@@ -574,12 +675,12 @@ EndFunc   ;==>Terminate
 Func AutoItExit()
 	myLog("Unblock keyboard/mouse")
 	If $isBlockMouse Then
+		UnblockMouse()
 		DllCallbackFree($pStub_MouseProc)
-		_WinAPI_UnhookWindowsHookEx($hHookMouse)
 	EndIf
 	If $isBlockKeyboard Then
+		UnblockKeyboard()
 		DllCallbackFree($pStub_KeyProc)
-		 _WinAPI_UnhookWindowsHookEx($hHookKeyboard)
 	EndIf
 	myLog("Close DbgView")
 	ProcessClose($dbgView)
