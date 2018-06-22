@@ -17,6 +17,7 @@
 #include <WinAPIDiag.au3>
 #include <InetConstants.au3>
 #include <MsgBoxConstants.au3>
+#include <GUIConstantsEx.au3>
 #include <zip.au3>
 #include <ScreenCapture.au3>
 #include <file.au3>
@@ -43,7 +44,7 @@ HotKeySet("{ESC}", "Terminate")
 
 ;=========GUI==============
 $guiWidth = 270
-$guiHeight = 125
+$guiHeight = 150
 GUICreate("Compatibility check" ,$guiWidth , $guiHeight , Int((@DesktopWidth - $guiWidth)/2), Int((@DesktopHeight - $guiHeight)/2))
 $guiBlockMouse = GUICtrlCreateCheckbox("Block mouse",10,10)
 GUICtrlSetState(-1,1)
@@ -51,15 +52,19 @@ $guiBlockKeyboard = GUICtrlCreateCheckbox('Block keyboard ("F8" to release)',10,
 GUICtrlSetState(-1,0)
 
 GUICtrlCreateLabel("Name" , 15 , 54 , 80)
-$inputName = GUICtrlCreateInput("", 70,50 , 150)
+$idComboBox = GUICtrlCreateCombo("QAWork", 70,50 , 80)
+$idComboBox2 = GUICtrlCreateCombo("Albert Chang", 70, 70, 150)
+GUICtrlSetData($idComboBox, "QADF|QAME|Others", "QAWork")
+GUICtrlSetData($idComboBox2, "Biaggi Li|Bill Kuo|Casper Chiu|Dave Huang|Dylan Liu|Eason Yeh|Jim Huang|Mike Huang|Miti Lin| _Nicklous Chen|Sam Chang|Terence Chang|Zony Chen", "Albert Chang")
+$idInputName = GUICtrlCreateInput("Your name?",70,70,150)
+GUICtrlSetState($idInputName,$GUI_HIDE)
 
-
-GUICtrlCreateLabel("Platform" , 15 , 79 , 80)
-$inputPlatform = GUICtrlCreateInput("", 70,75 , 150)
+GUICtrlCreateLabel("Platform" , 15 , 99 , 80)
+$inputPlatform = GUICtrlCreateInput("", 70,95 , 150)
 GUICtrlSetState(-1,256) ; focus on display name
 
-GUICtrlCreateLabel('Hit "ESC" to stop.' , 10 , 110)
-$btnStart = GUICtrlCreateButton("Start!" , 120 , 98 , 50, 25)
+GUICtrlCreateLabel('Hit "ESC" to stop.' , 10 , 130)
+$btnStart = GUICtrlCreateButton("Start!" , 120 , 118 , 50, 25)
 
 $iENTER = GUICtrlCreateDummy()
 Dim $AccelKeys[1][2] = [["{ENTER}", $iENTER]]; Set accelerators
@@ -77,6 +82,25 @@ While 1
 				ExitLoop
 			Case $iENTER
 				ExitLoop
+			Case $idComboBox
+                $sComboRead = GUICtrlRead($idComboBox)
+                Switch $sComboRead
+					Case "QAWork"
+						GUICtrlSetState($idComboBox2,$GUI_SHOW)
+						GUICtrlSetState($idInputName,$GUI_HIDE)
+						GUICtrlSetData($idComboBox2, "|Albert Chang|Biaggi Li|Bill Kuo|Casper Chiu|Dave Huang|Dylan Liu|Eason Yeh|Jim Huang|Mike Huang|Miti Lin|Nicklous Chen|Sam Chang|Terence Chang|Zony Chen", "Albert Chang")
+   					Case "QADF"
+						GUICtrlSetState($idComboBox2,$GUI_SHOW)
+						GUICtrlSetState($idInputName,$GUI_HIDE)
+						GUICtrlSetData($idComboBox2, "|Cindy Chang|Dino Wei|Eason Peng|Enya Chuang|Frank Chen|Jerry Chang|Jim Chen|Mark Chang|Michelle Jiang|Ramon Chen|Ryan Chang|Ryu Chu|Shawn Huang|Will Chiang|Yeva Huang", "Cindy Chang")
+					Case "QAME"
+						GUICtrlSetState($idComboBox2,$GUI_SHOW)
+						GUICtrlSetState($idInputName,$GUI_HIDE)
+						GUICtrlSetData($idComboBox2, "|Alix Kao|Allan Hsieh|Angol Huang|Aquino Lin|Arlon Chou|Bally Hsu|Duncan Su|Ego Chen|Eka Wu|Ernesto Huang|Gary Hsieh|Ivan Wang|Jason Yeng|John Shih|Mike Lu|Mike Yu|Morris Liao|Volath Liu", "Alix Kao")
+					Case "Others"
+						GUICtrlSetState($idComboBox2,$GUI_HIDE)
+						GUICtrlSetState($idInputName,$GUI_SHOW)
+				EndSwitch
         EndSwitch
 WEnd
 
@@ -84,7 +108,11 @@ $isBlockMouse = (GUICtrlRead($guiBlockMouse) = 1)? True : False	; 1 checked, 4 u
 $isBlockKeyboard = (GUICtrlRead($guiBlockKeyboard)=1)? True : False
 ;~ $isBlockMouse = False
 ;~ $isBlockKeyboard = False
-$displayName = GUICtrlRead($inputName)
+If GUICtrlRead($idComboBox) = "Others" Then
+	$displayName = GUICtrlRead($idInputName)
+Else
+	$displayName = GUICtrlRead($idComboBox2)
+EndIf
 $platformName = GUICtrlRead($inputPlatform)
 If $displayName = "" Then $displayName = "[Empty]"
 If $platformName = "" Then $platformName = "[PlatformEmpty]"
