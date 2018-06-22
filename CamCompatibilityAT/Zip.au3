@@ -101,10 +101,12 @@ Func _Zip_AddFolder($hZipFile, $hFolder, $flag = 1)
 	$files = _Zip_Count($hZipFile)
 	Static $oApp = ObjCreate("Shell.Application")
 	$oCopy = $oApp.NameSpace($hZipFile).CopyHere($oApp.Namespace($hFolder))
+	sleep(100)
 	While 1
 		If $flag = 1 then _Hide()
 		;If _Zip_Count($hZipFile) = ($files+1) Then ExitLoop
-		If not _FileInUse($hZipFile) then ExitLoop
+
+		If (not _FileInUse($hZipFile)) and (ControlGetHandle("[CLASS:#32770]", "", "[CLASS:SysAnimate32; INSTANCE:1]") = "") then ExitLoop
 		Sleep(100)
 	WEnd
 	Return SetError(0,0,1)
