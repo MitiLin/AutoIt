@@ -17,17 +17,21 @@
 
 HotKeySet("{ESC}", "Terminate")
 
-$meetingSchedule = readMeetingINI("AutoMeeting.ini")
-$receiveSchedule = readReceiveINI("AutoMeeting.ini")
+$meetingSchedule = ReadMeetingINI("AutoMeeting.ini")
+$receiveSchedule = ReadReceiveINI("AutoMeeting.ini")
 
 While True
 	$callee = AlarmCalling($meetingSchedule)
 	If $callee Then
-		MyToolTip("Calling - " & $callee)
-		AutoCalling($callee)
+
+		for $i = 1 to 3
+			MyToolTip($i & "/3: Calling - " & $callee)
+			AutoCalling($callee)
+		Next
 	ElseIf AlarmReceiving($receiveSchedule) Then
-		MyToolTip("Receiving")
+		MyToolTip("Auto-answer: On" & @CRLF &  "Press [Esc] to leave.")
 		AutoAnswer()
+		MeetingEndDlg()
 	Else
 		MyToolTip("")
 		sleep(250)

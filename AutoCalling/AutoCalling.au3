@@ -1,4 +1,5 @@
 
+$Server = "UBeta"
 ;ControlClick("[Title:U;Class:U]","","[CLASS:Edit;INSTANCE:2]")
 If @OSVersion = "WIN_81" or @OSVersion = "WIN_8" or @OSVersion = "WIN_10" Then
 
@@ -10,21 +11,21 @@ EndIf
 
 ;AutoCalling("2")
 ;sleep(3000)
-ConsoleWrite(NoAnsweredDlg())
-
+;ConsoleWrite(NoAnsweredDlg())
 
 Func AutoCalling($user)
-	$hU = WinActivate("[Title:U;Class:U]")
+	$hU = WinActivate("[Title:U;Class:" & $Server & "]")
 	If not $hU then return False
 	SwitchTabChat()
 	$posU = WinGetPos($hU)
-	ControlClick("[Title:U;Class:U]","","[CLASS:Edit;INSTANCE:2]")
+	ControlClick("Title:U;Class:" & $Server & "]","","[CLASS:Edit;INSTANCE:2]")
 	Send("^a")
 	$tmp = ClipGet()
 	While $tmp = ClipGet()
 		ClipPut($user)
 	WEnd
 	IMEToEng()
+	Sleep(500)
 	Send("^v")
 	ClipPut($tmp)
 	Sleep(1000)
@@ -59,9 +60,9 @@ Func MeetingStart()
 	Sleep(1000)
 
 	myLog("Count down 60 sec")
-	_countDown(60)
+	_countDown(30)
 	If NoAnsweredDlg() Then Return
-	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
+	;_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +50 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)	; Click Recording button
 
 	;Meeting - leaving
 	_MouseClick("Left" , $posMeeting[0] + $posMeeting[2]/2 +150 , $posMeeting[1] + $posMeeting[3] -40 ,1,5)
@@ -97,7 +98,7 @@ EndFunc
 Func NoAnsweredDlg()
 	WinActivate("[Title:CyberLink;Class:Koan;W:320\H:180]")
 	$hNoAnswer = WinWaitActive("[Title:CyberLink;Class:Koan;W:320\H:180]","",5)
-	ConsoleWrite("win = " & $hNoAnswer &@CRLF)
+	;ConsoleWrite("win = " & $hNoAnswer &@CRLF)
 	$posDlg = WinGetPos($hNoAnswer)
 	If IsArray($posDlg) then
 		MouseClick("Left",$posDlg[0]+255,$posDlg[1]+155)
@@ -165,10 +166,9 @@ Func myLog($_data1 = '[empty]', $_data2 = '', $_data3 = '', $_data4 = '', $_data
 ;~ 	(($_data5="")?"": ", " & $_data5) _
 ;~ 	)
 EndFunc
-
-
 Func SwitchTabHome()
-	$hU = WinActivate("[Title:U;Class:U]")
+	$hU = WinActivate("[Title:U;Class:" & $Server & "]")
+	ConsoleWrite($hu)
 	If not $hU then return False
 	$posU = WinGetPos($hU)
 	MouseClick("Left", $posU[0] + Floor($posU[2]/2) -95 , $posU[1] + 85 ,1,10)
@@ -177,7 +177,7 @@ EndFunc
 
 
 Func SwitchTabChat()
-	$hU = WinActivate("[Title:U;Class:U]")
+	$hU = WinActivate("[Title:U;Class:" & $Server & "]")
 	If not $hU then return False
 	$posU = WinGetPos($hU)
 	MouseClick("Left", $posU[0] + Floor($posU[2]/2) -35 , $posU[1] + 85 ,1,10)
