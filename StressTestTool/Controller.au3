@@ -15,8 +15,8 @@
 
 
 DirCreate ( @AppDataDir & "\AutoIt" )
-FileInstall ( ".\PsExec.exe", @AppDataDir & "\AutoIt\PsExec.exe" )
-FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt\Receiver.exe" )
+FileInstall ( ".\PsExec.exe", @AppDataDir & "\AutoIt\PsExec.exe",1 )
+FileInstall ( ".\Receiver.exe", @AppDataDir & "\AutoIt\Receiver.exe",1 )
 $exeFile = @AppDataDir & "\AutoIt\Receiver.exe"
 $iniList = IniReadSection("list.ini", "Server")
 $iniAccount =  IniReadSection("list.ini", "Account")
@@ -25,7 +25,7 @@ $iniAccount =  IniReadSection("list.ini", "Account")
 dim $client[$iniList[0][0]+1][6] ; UI controler
 dim $cmdPid[$iniList[0][0]+1] ; cmdPid
 local $publicIP = _GetPublicIP()
-
+ConsoleWrite($publicIp &@CRLF)
 $mainControler = GUICreate ("Controller", 1200, $iniList[0][0] * 22 + 80)
 
 ; Caption bar
@@ -46,7 +46,7 @@ Next
 
 ; bottom items
 $btn_Execute = GUICtrlCreateButton ("Start Receivers" , 10 , $iniList[0][0] * 22 + 40 ,100 , 30)
-$txt_SessionId = GUICtrlCreateInput ("1", 110 , $iniList[0][0] * 22 + 45 , 20, 20, -1,	0x0001)
+$txt_SessionId = GUICtrlCreateInput ("2", 110 , $iniList[0][0] * 22 + 45 , 20, 20, -1,	0x0001)
 $btn_Network = GUICtrlCreateButton ("Get network status" , 130 , $iniList[0][0] * 22 + 40 ,100 , 30)
 $btn_Start = GUICtrlCreateButton ("Start Download" , 230 , $iniList[0][0] * 22 + 40 ,100 , 30 )
 $txt_LiveId = GUICtrlCreateInput ("", 330 , $iniList[0][0] * 22 + 45 , 200, 20, -1,	0x0001)
@@ -57,7 +57,8 @@ GUISetState()
 ; == Setup TCP
 TCPStartup()
 OnAutoItExitRegister("OnAutoItExit")
-Local $sIPAddress = @IPAddress1	; This IP Address only works for testing on your own computer.; 111.248.196.86
+;Local $sIPAddress = @IPAddress1	; This IP Address only works for testing on your own computer.; 111.248.196.86
+Local $sIPAddress = $publicIP
 Local $iPort = 80 ; Port used for the connection.
 Local $iListenSocket = TCPListen($sIPAddress, $iPort, 1000)
 Local $iError = 0
@@ -90,7 +91,7 @@ While 1
 			Break
 		EndIf
 		$command[0] = IPtoIndex($command[1],$iniList) ; [0]index [1] IP [2] command [3] para
-		ConsoleWrite("command2=" & $command[2] &"command0=" & $command[0] &@CRLF)
+		;ConsoleWrite("command2=" & $command[2] &"command0=" & $command[0] &@CRLF)
 		GUICtrlSetData($client[$command[0]][4],$command[2])
 		GUICtrlSetState($client[$command[0]][2],1)
 		Switch $command[2]
@@ -118,7 +119,7 @@ While 1
 			GUICtrlSetState($btn_Execute,128)
 			for $i = 1 to $iniList[0][0]
 				If GUICtrlRead($client[$i][1]) = 1 Then
-					$cmdPid[$i] = Run(@ComSpec & " /c " & @AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u "&$iniAccount[1][0]&" -p "&$iniAccount[1][1]&" -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80" , "", @SW_HIDE)
+					$cmdPid[$i] = Run(@ComSpec & " /c " & @AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u "&$iniAccount[1][0]&" -p "&$iniAccount[1][1]&" -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80" & " responds livepath" , "", @SW_HIDE)
 					GUICtrlSetData($client[$i][4], "Connecting to client")
 ;~ 				    Local $t_ExitCode = DllStructCreate("int")
 ;~ 					Local $avRET = DllCall("kernel32.dll", "int", "GetExitCodeProcess", "ptr", $cmdPid, "ptr", DllStructGetPtr($t_ExitCode))
