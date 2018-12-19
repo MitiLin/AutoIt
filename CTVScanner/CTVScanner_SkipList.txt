@@ -1,0 +1,14 @@
+; This file is use for skipping the folders which should have exe without CTV.sim.
+; Please add a empty line if root folder needs to be checked as well.
+;
+; Usage:
+; 	RelativePath1
+;	RelativePath2
+;
+; Eg.
+; 	
+;	Kernel
+;	Kernel\DMP
+;	Common\CLDownloader
+;
+MUITransfer
