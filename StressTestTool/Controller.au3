@@ -144,6 +144,7 @@ Func _GetPublicIP()
 	Local Const $GETIP_TIMER = 300000 ; Constant for how many milliseconds between each check. This is 5 minutes.
 	Local Static $hTimer = 0 ; Create a static variable to store the timer handle.
 	Local Static $sLastIP = 0 ; Create a static variable to store the last IP.
+	HttpSetUserAgent("Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0")
 
 	If TimerDiff($hTimer) < $GETIP_TIMER And Not $sLastIP Then ; If still in the timer and $sLastIP contains a value.
 		Return SetExtended(1, $sLastIP) ; Return the last IP instead and set @extended to 1.
@@ -163,12 +164,12 @@ Func _GetPublicIP()
 		http://www.telize.com/ip
 		http://www.trackip.net/ip
 	#ce
-	Local $aGetIPURL[] = ["http://www.whatismyip.com.tw/"], _
+	Local $aGetIPURL[] = ["https://myip.com.tw/"], _
 			$aReturn = 0, _
 			$sReturn = ""
-
+	HttpSetUserAgent("Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0")
 	For $i = 0 To UBound($aGetIPURL) - 1
-		$sReturn = InetRead($aGetIPURL[$i])
+		$sReturn = InetRead($aGetIPURL[$i],3)
 		If @error Or $sReturn == "" Then ContinueLoop
 		$aReturn = StringRegExp(BinaryToString($sReturn), "((?:\d{1,3}\.){3}\d{1,3})", $STR_REGEXPARRAYGLOBALMATCH) ; [\d\.]{7,15}
 		If @error = 0 Then
@@ -177,7 +178,6 @@ Func _GetPublicIP()
 		EndIf
 		$sReturn = ""
 	Next
-
 	$hTimer = TimerInit() ; Create a new timer handle.
 	$sLastIP = $sReturn ; Store this IP.
 	If $sReturn == "" Then Return SetError(1, 0, -1)
