@@ -123,7 +123,7 @@ While 1
 					GUICtrlSetData($client[$i][4], "Connecting to client")
 ;~ 				    Local $t_ExitCode = DllStructCreate("int")
 ;~ 					Local $avRET = DllCall("kernel32.dll", "int", "GetExitCodeProcess", "ptr", $cmdPid, "ptr", DllStructGetPtr($t_ExitCode))
-					ConsoleWrite(@AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u "&$iniAccount[1][0]&" -p "&$iniAccount[1][1]&" -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80"  &@CRLF)
+					ConsoleWrite(@AppDataDir & '\AutoIt\PsExec.exe \\' & $iniList[$i][1] & " -u "&$iniAccount[1][0]&" -p "&$iniAccount[1][1]&" -d -i " & GUICtrlRead($txt_SessionId) &" -f -c " & $exeFile & " " & $publicIP & " 80"  & " responds livepath" &@CRLF)
 				EndIf
 			Next
 			GUICtrlSetState($btn_Execute,64)
