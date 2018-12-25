@@ -8,7 +8,7 @@ Func _openCVTM($image1 , $image2 , $threshold = 0.9 , $multipleSearch = false)
 	$threshold = Similarity limitation
 	$multipleSearch = return multiple results that meets threshold
 
-	Return = array -> [x , y , width , height]
+	Return = array -> [x, y, width, height, Similarity] or [[x1, y1, width1, height1, Similarity1], [x2, y2, width2, height2, Similarity2], ...]
 
 #ce ----------------------------------------------------------------------------
 
