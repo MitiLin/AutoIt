@@ -26,6 +26,7 @@ Else
 	$ratioDPI = 1
 EndIf
 
+Initial()
 
 Global $aPID[UBound($aAccount)]
 ; $aPC = [[hMain0,ChildChatroom0, ChildChatroom1 .. 3] , [PC2, hWnd2 ...3] ...3]
@@ -52,6 +53,13 @@ MsgBox(0,"","Pass " & $pass & " times")
 
 
 
+Func Initial()
+	DirCreate(@LocalAppDataDir&"\AutoMessage")
+	FileInstall("_TopLeft_receive.png", @LocalAppDataDir&"\AutoMessage\_TopLeft_receive.png",0)
+	FileInstall("_BotRight_receive.png", @LocalAppDataDir&"\AutoMessage\_BotRight_receive.png",0)
+EndFunc
+
+
 
 
 Func OpenChatRoom($iTargetIndex,$iOpenIndex)
@@ -61,7 +69,7 @@ Func OpenChatRoom($iTargetIndex,$iOpenIndex)
 		ConsoleWrite("The windows handle [" & $iTargetIndex & "][" & $iOpenIndex & "] is not found. Open new one." &@CRLF)
 		$_hU = WinActivate($aPC[$iTargetIndex][0])
 		$_posU = _WinGetPos($_hU)
-		If Not IsArray($_pos) Then MsgBox(0,"","Main window [" & $iTargetIndex&"] is not found.")
+		If Not IsArray($_posU) Then MsgBox(0,"","Main window [" & $iTargetIndex&"] is not found.")
 		_MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) +95 , $_posU[1] + 85 , 1, 10)
 		_MouseClick("Left", $_posU[0] + Floor($_posU[2]/2) +135 , $_posU[1] + 85 , 1, 20)
 		Sleep(1000)

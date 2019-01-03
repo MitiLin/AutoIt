@@ -16,10 +16,10 @@
 
 Func GetLastMessage($png)
 	$source = $png
-	$imgTL = @ScriptDir & "\_TopLeft_receive.png"
+	$imgTL = @LocalAppDataDir&"\AutoMessage\_TopLeft_receive.png" ; old path = @ScriptDir & "\_TopLeft_receive.png"
 	;$imgTR = @ScriptDir & "\_TopRight.png"
 	;$imgBL = @ScriptDir & "\_BotLeft.png"
-	$imgBR = @ScriptDir & "\_BotRight_receive.png"
+	$imgBR = @LocalAppDataDir&"\AutoMessage\_BotRight_receive.png" ; old path = @ScriptDir & "\_BotRight_receive.png"
 	$tempPNG = @TempDir & "\LastMSG.png"
 
 	$TL_List = _openCVTM($source,$imgTL,0.96,True)
@@ -29,7 +29,7 @@ Func GetLastMessage($png)
 	$PosLastMSG = _GetLastReveiveMsgPos($TL_List,$BR_List)
 	_getMsgSnapshot($source,$posLastMSG,$tempPNG)
 	$Msg = _OCRMsg($tempPNG)
-	FileDelete($tempPNG)
+	;FileDelete($tempPNG)
 	Return $Msg
 EndFunc
 
@@ -40,6 +40,7 @@ Func _OCRMsg($_png)
 	RunWait(@ComSpec & " /c " & "tesseract " & $_png & " " & "temp -c tosp_min_sane_kn_sp=3 -l normal --psm 7" , @ScriptDir , @SW_HIDE )
 	;ConsoleWrite("cmd = " &"tesseract " & $_png & " " & "temp -c tosp_min_sane_kn_sp=3 -l normal --psm 7" &@CRLF )
 	$_str = FileReadLine(@ScriptDir & "\temp.txt")
+	FileDelete(@ScriptDir & "\temp.txt")
 	;ConsoleWrite("Txt = " & $_str &@CRLF)
 	return	$_str
 EndFunc
