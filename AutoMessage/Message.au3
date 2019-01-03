@@ -79,7 +79,7 @@ Func OpenChatRoom($iTargetIndex,$iOpenIndex)
 			ClipPut($aName[$iOpenIndex])
 		WEnd
 		Send("^a^v")
-		Sleep(1000)
+		Sleep(1200)
 		ClipPut($tmp)
 		_MouseClick("Left", $_posU[0] + 80 , $_posU[1] + 230 ,2, 10)
 		Sleep(1000)
@@ -89,6 +89,8 @@ Func OpenChatRoom($iTargetIndex,$iOpenIndex)
 			If WinGetTitle($aChildWnd[$i][0]) = $aName[$iOpenIndex] Then
 				$aPC[$iTargetIndex][$iOpenIndex+1] = $aChildWnd[$i][0]
 				$hReturn =  $aChildWnd[$i][0]
+				WinMove($aPC[$iTargetIndex][$iOpenIndex+1],"", $iTargetIndex * @DesktopWidth / UBound($aName), 50 * ($iOpenIndex+1) ,@DesktopWidth / UBound($aName),@DesktopHeight * 0.75)
+				Sleep(500)
 			EndIf
 		Next
 	EndIf
@@ -167,12 +169,14 @@ Func GetHWndPC($aAccount, $aPW)
 			$aWND = _WinAPI_EnumProcessWindows($aPID[$i],True)
 			If IsArray($aWND) Then
 				$aReturn[$i][0] = $aWnd[1][0]
+				WinMove($aReturn[$i][0],"", $i * @DesktopWidth / UBound($aAccount),0,@DesktopWidth / UBound($aAccount))
+				Sleep(500)
 				ExitLoop
 			EndIf
 		WEnd
 	Next
-	If TimerDiff($timer) > 20000 Then
-		MsgBox(0,"","Didn't found all U Windows in 20 sec.")
+	If TimerDiff($timer) > 30000 Then
+		MsgBox(0,"","Didn't found all U Windows in 30 sec.")
 		Exit 1
 	Else
 		Return $aReturn
