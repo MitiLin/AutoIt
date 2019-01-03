@@ -53,7 +53,19 @@ MsgBox(0,"","Pass " & $pass & " times")
 
 
 
+Func Heartbeat()
+	If Not FileWrite(@DesktopDir&"\TWGCP_Heartbeat_Monitor\Webinar\alive.txt",@MON&@MDAY&@HOUR&@MIN&@SEC& " - I am alive." &@CRLF) Then
+		ToolTip("Heartbeat failed, retry now!",0,0)
+		DirCreate(@DesktopDir&"\TWGCP_Heartbeat_Monitor\Webinar")
+		Heartbeat()
+	EndIf
+	ToolTip("Heartbeat success!",0,0)
+EndFunc
+
+
 Func Initial()
+	AdlibRegister("Heartbeat", 5*60*1000)
+	Heartbeat()
 	DirCreate(@LocalAppDataDir&"\AutoMessage")
 	FileInstall("_TopLeft_receive.png", @LocalAppDataDir&"\AutoMessage\_TopLeft_receive.png",0)
 	FileInstall("_BotRight_receive.png", @LocalAppDataDir&"\AutoMessage\_BotRight_receive.png",0)
