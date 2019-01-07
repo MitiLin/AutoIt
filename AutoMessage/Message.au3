@@ -32,31 +32,52 @@ Global $aPID[UBound($aAccount)]
 ; $aPC = [[hMain0,ChildChatroom0, ChildChatroom1 .. 3] , [PC2, hWnd2 ...3] ...3]
 Global $aPC = GetHWndPC($aAccount , $aPw)
 
+$SleepTime = 10
 $Pass=0
 $Fail=0
-for $i = 1 to 100
-	$sender = Random(0,3,1)
-	$Receiver = $sender + Random(1,3,1)
-	If $Receiver >3 Then $Receiver -= 4
-	$randomCode = Random(100000000,999999999,1)
-	ToolTip("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Sending [" & $aName[$sender] & "] to " & $aName[$Receiver] & " code:" & $randomCode,0,0)
-	IMSend($sender,$Receiver,$randomCode)
-	ToolTip("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Verify " & $aName[$sender] & " to [" & $aName[$Receiver] & "] code:" & $randomCode,0,0)
-	If IMVerify($sender,$Receiver,$randomCode) Then
-		$Pass += 1
+$FailMessage = ""
+$timerSleep = TimerInit()
+While True
+	for $i = 1 to 10
+		$sender = Random(0,3,1)
+		$Receiver = $sender + Random(1,3,1)
+		If $Receiver >3 Then $Receiver -= 4
+		$randomCode = Random(100000000,999999999,1)
+		ToolTip("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Sending [" & $aName[$sender] & "] to " & $aName[$Receiver] & " code:" & $randomCode,0,0)
+		IMSend($sender,$Receiver,$randomCode)
+		 ("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Verify " & $aName[$sender] & " to [" & $aName[$Receiver] & "] code:" & $randomCode,0,0)
+		If IMVerify($sender,$Receiver,$randomCode) Then
+			$Pass += 1
+		Else
+			;MsgBox(0,"","Fail , Code is " & $randomCode)
+			$FailMessage &= "[Account("&$sender&") send to account("&$Receiver&") failed.]"
+			$Fail += 1
+		EndIf
+	Next
+	$prefix = @YEAR&"/"&@MON&"/"&@MDAY&"_"&@HOUR&":"&@MIN&":"&@SEC& @TAB & "Messenger" & @TAB
+	If $Fail >= 3 Then
+
+		FileWrite("Messenger\fail.txt",$prefix & "Send message failed." & $FailMessage & @CRLF)
 	Else
-		MsgBox(0,"","Fail , Code is " & $randomCode)
-		$Fail += 1
+		FileWrite("Messenger\Success.txt",$prefix & "Send message success!" & @CRLF )
 	EndIf
-Next
+	While TimerDiff($timerSleep) < $SleepTime * 60 * 1000
+		sleep(100)
+	WEnd
+	$Pass=0
+	$Fail=0
+	$FailMessage = ""
+	$timerSleep = TimerInit()
+WEnd
+
 MsgBox(0,"","Pass " & $pass & " times")
 
 
 
 Func Heartbeat()
-	If Not FileWrite(@DesktopDir&"\TWGCP_Heartbeat_Monitor\Webinar\alive.txt",@MON&@MDAY&@HOUR&@MIN&@SEC& " - I am alive." &@CRLF) Then
+	If Not FileWrite("Messenger\alive.txt",@MON&@MDAY&@HOUR&@MIN&@SEC& " - I am alive." &@CRLF) Then
 		ToolTip("Heartbeat failed, retry now!",0,0)
-		DirCreate(@DesktopDir&"\TWGCP_Heartbeat_Monitor\Webinar")
+		DirCreate("Messenger\")
 		Heartbeat()
 	EndIf
 	ToolTip("Heartbeat success!",0,0)
@@ -102,7 +123,7 @@ Func OpenChatRoom($iTargetIndex,$iOpenIndex)
 				$aPC[$iTargetIndex][$iOpenIndex+1] = $aChildWnd[$i][0]
 				$hReturn =  $aChildWnd[$i][0]
 				WinMove($aPC[$iTargetIndex][$iOpenIndex+1],"", $iTargetIndex * @DesktopWidth / UBound($aName), 50 * ($iOpenIndex+1) ,@DesktopWidth / UBound($aName),@DesktopHeight * 0.75)
-				Sleep(500)
+				Sleep(1000)
 			EndIf
 		Next
 	EndIf
@@ -123,8 +144,8 @@ Func IMSend($hSender, $hReceiver, $sMsg)
 	$_hChatWindow = OpenChatRoom($hSender,$hReceiver)
 	$_posChatWindow = _WinGetPos($_hChatWindow)
 	Local $_posChatRoom = [ $_posChatWindow[0] + $_posChatWindow[2]/2  , $_posChatWindow[1] + $_posChatWindow[3] - 30 ]
-	$timer = TimerInit
-	While (TimerDiff($timer) < 5000)
+	$_timer = TimerInit
+	While (TimerDiff($_timer) < 10000)
 		If PixelGetColor($_posChatRoom[0], $_posChatRoom[1]) = 0xFFFFFF Then ExitLoop
 	WEnd
 	If Not (PixelGetColor($_posChatRoom[0], $_posChatRoom[1]) = 0xFFFFFF) Then Return -1
@@ -133,6 +154,7 @@ Func IMSend($hSender, $hReceiver, $sMsg)
 	While ClipGet() <> $sMsg
 		ClipPut($sMsg)
 	WEnd
+	Sleep(500)
 	Send("^a^v")
 	Sleep(500)
 	Send("{Enter}")
@@ -159,7 +181,7 @@ Func AutoItExit()
 		UnblockKeyboard()
 		DllCallbackFree($pStub_KeyProc)
 	EndIf
-	myLog("Close DbgView")
+	ToolTip("")
 	RunWait("TASKKILL /IM U.exe /F","",@SW_HIDE )
 	sleep(1000)
 	_RefreshNotificationAreaIcons(0)
@@ -175,19 +197,19 @@ Func GetHWndPC($aAccount, $aPW)
 	For $i = 0 to UBound($aAccount)-1
 		$aPID[$i] = Run(@AppDataCommonDir & "\Cyberlink\U\U.exe multipleinstance=" & $i & " email=" & $aAccount[$i] & " pwd=" & $aPW[$i] )
 	Next
-	$timer = TimerInit()
+	$_timer = TimerInit()
 	For $i = 0 to UBound($aAccount)-1
-		While TimerDiff($timer) < 15000 ; wait launch for MAX 15 sec
+		While TimerDiff($_timer) < 15000 ; wait launch for MAX 15 sec
 			$aWND = _WinAPI_EnumProcessWindows($aPID[$i],True)
 			If IsArray($aWND) Then
 				$aReturn[$i][0] = $aWnd[1][0]
 				WinMove($aReturn[$i][0],"", $i * @DesktopWidth / UBound($aAccount),0,@DesktopWidth / UBound($aAccount))
-				Sleep(500)
+				Sleep(1000)
 				ExitLoop
 			EndIf
 		WEnd
 	Next
-	If TimerDiff($timer) > 30000 Then
+	If TimerDiff($_timer) > 30000 Then
 		MsgBox(0,"","Didn't found all U Windows in 30 sec.")
 		Exit 1
 	Else
