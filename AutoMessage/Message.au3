@@ -32,20 +32,20 @@ Global $aPID[UBound($aAccount)]
 ; $aPC = [[hMain0,ChildChatroom0, ChildChatroom1 .. 3] , [PC2, hWnd2 ...3] ...3]
 Global $aPC = GetHWndPC($aAccount , $aPw)
 
-$SleepTime = 10
+$SleepTime = 30
 $Pass=0
 $Fail=0
 $FailMessage = ""
 $timerSleep = TimerInit()
 While True
-	for $i = 1 to 10
-		$sender = Random(0,3,1)
-		$Receiver = $sender + Random(1,3,1)
-		If $Receiver >3 Then $Receiver -= 4
+	for $i = 1 to 6
+		$sender = 2
+		$Receiver = ($i>3)? 1 : 3 ;$Receiver = $sender + Random(1,3,1) fix for only TW -> TW,JP
+		;If $Receiver >3 Then $Receiver -= 4 fix for only TW -> TW,JP
 		$randomCode = Random(100000000,999999999,1)
 		ToolTip("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Sending [" & $aName[$sender] & "] to " & $aName[$Receiver] & " code:" & $randomCode,0,0)
 		IMSend($sender,$Receiver,$randomCode)
-		 ("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Verify " & $aName[$sender] & " to [" & $aName[$Receiver] & "] code:" & $randomCode,0,0)
+		ToolTip ("Pass:" & $pass & " / Fail:" & $Fail & @CRLF & "Verify " & $aName[$sender] & " to [" & $aName[$Receiver] & "] code:" & $randomCode,0,0)
 		If IMVerify($sender,$Receiver,$randomCode) Then
 			$Pass += 1
 		Else
@@ -54,7 +54,7 @@ While True
 			$Fail += 1
 		EndIf
 	Next
-	$prefix = @YEAR&"/"&@MON&"/"&@MDAY&"_"&@HOUR&":"&@MIN&":"&@SEC& @TAB & "Messenger" & @TAB
+	$prefix = @YEAR&"/"&@MON&"/"&@MDAY&"_"&@HOUR&":"&@MIN&":"&@SEC& @TAB & "5.0" & @TAB
 	If $Fail >= 3 Then
 
 		FileWrite("Messenger\fail.txt",$prefix & "Send message failed." & $FailMessage & @CRLF)
